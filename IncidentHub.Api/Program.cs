@@ -1,6 +1,8 @@
 using FluentValidation;
 using IncidentHub.Api.Features.Incidents.Commands.RaiseIncident;
+using IncidentHub.Api.Features.Incidents.Commands.ResolveIncident;
 using IncidentHub.Api.Features.Incidents.Commands.UpdateIncidentStatus;
+using IncidentHub.Api.Features.Incidents.Queries.GetIncidentById;
 using IncidentHub.Api.Features.Incidents.Queries.GetIncidents;
 using IncidentHub.Api.Features.Timeline.Queries.GetIncidentTimeline;
 using IncidentHub.Api.Hubs;
@@ -14,7 +16,6 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddOpenApi();
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<Program>());
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
-
 var signalR = builder.Services.AddSignalR();
 
 // Only delegate to Azure SignalR Service when a connection string is configured.
@@ -24,7 +25,6 @@ if (!string.IsNullOrEmpty(azureSignalRConnectionString))
 {
     signalR.AddAzureSignalR(azureSignalRConnectionString);
 }
-
 builder.Services.AddDbContext<AppDbContext>(o =>
     o.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
 builder.Services.AddAuthentication().AddJwtBearer(o =>
@@ -82,20 +82,32 @@ app.MapPost("/api/incidents", async (RaiseIncidentCommand cmd, IMediator m) =>
 })
     .RequireAuthorization("responder");
 
-app.MapPatch("/api/incidents/{id}/status", async (
-    Guid id, UpdateIncidentStatusCommand cmd, IMediator m, HttpContext http) =>
-{
-    var sub = http.User.FindFirst("sub")?.Value;
-    return await m.Send(cmd with { Id = id, ChangedBy = sub });
-})
-.RequireAuthorization("responder");
+app.MapPatch("/api/incidents/{id}/status", async (Guid id,
+    UpdateIncidentStatusCommand cmd, IMediator m) => await m.Send(cmd with { Id = id }))
+    .RequireAuthorization("responder");
 
 app.MapGet("/api/incidents", async (IMediator m)
     => await m.Send(new GetIncidentsQuery()))
     .RequireAuthorization();
 
-app.MapGet("/api/incidents/{id}/timeline", async (Guid id, IMediator m)
+app.MapGet("/api/incidents/{id:guid}", async (Guid id, IMediator m) =>
+{
+    var result = await m.Send(new GetIncidentByIdQuery(id));
+    return result is null ? Results.NotFound() : Results.Ok(result);
+})
+    .RequireAuthorization();
+
+app.MapGet("/api/incidents/{id:guid}/timeline", async (Guid id, IMediator m)
     => await m.Send(new GetIncidentTimelineQuery(id)))
     .RequireAuthorization();
+
+app.MapPost("/api/incidents/{id:guid}/resolve", async (
+    Guid id, ResolveIncidentCommand cmd, IMediator m, HttpContext http) =>
+{
+    var sub = http.User.FindFirst("sub")?.Value;
+    var result = await m.Send(cmd with { Id = id, ChangedBy = sub });
+    return Results.Ok(result);
+})
+    .RequireAuthorization("responder");
 
 app.Run();
