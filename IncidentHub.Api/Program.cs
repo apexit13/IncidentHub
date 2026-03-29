@@ -14,7 +14,17 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddOpenApi();
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<Program>());
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
-builder.Services.AddSignalR().AddAzureSignalR();
+
+var signalR = builder.Services.AddSignalR();
+
+// Only delegate to Azure SignalR Service when a connection string is configured.
+// Locally this falls back to in-process SignalR — no Azure resource needed.
+var azureSignalRConnectionString = builder.Configuration["Azure:SignalR:ConnectionString"];
+if (!string.IsNullOrEmpty(azureSignalRConnectionString))
+{
+    signalR.AddAzureSignalR(azureSignalRConnectionString);
+}
+
 builder.Services.AddDbContext<AppDbContext>(o =>
     o.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
 builder.Services.AddAuthentication().AddJwtBearer(o =>
@@ -25,7 +35,7 @@ builder.Services.AddAuthentication().AddJwtBearer(o =>
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("responder", policy =>
-        policy.RequireClaim("https://incidenthub/roles", "responder"));
+        policy.RequireClaim("https://incidenthub.example.com/roles", "responder"));
 });
 builder.Services.AddCors(options =>
 {
