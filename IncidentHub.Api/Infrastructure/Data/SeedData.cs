@@ -2,7 +2,7 @@ using IncidentHub.Api.Domain;
 using IncidentHub.Api.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
-namespace IncidentHub.Api.Infrastructure;
+namespace IncidentHub.Api.Infrastructure.Data;
 
 public static class SeedData
 {

@@ -27,7 +27,6 @@
 
   <ItemGroup>
     <Folder Include="Features\Incidents\Commands\ResolveIncident\" />
-    <Folder Include="Infrastructure\Migrations\" />
   </ItemGroup>
 
 </Project>

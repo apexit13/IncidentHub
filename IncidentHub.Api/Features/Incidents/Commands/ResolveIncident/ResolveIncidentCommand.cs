@@ -1,9 +1,10 @@
+using System.Text.Json.Serialization;
 using FluentValidation;
 using IncidentHub.Api.Contracts;
 using IncidentHub.Api.Domain;
 using IncidentHub.Api.Domain.Enums;
 using IncidentHub.Api.Hubs;
-using IncidentHub.Api.Infrastructure;
+using IncidentHub.Api.Infrastructure.Data;
 using MediatR;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
@@ -11,10 +12,15 @@ using Microsoft.EntityFrameworkCore;
 namespace IncidentHub.Api.Features.Incidents.Commands.ResolveIncident;
 
 public record ResolveIncidentCommand(
-    Guid Id,
-    string? ResolutionMessage,
-    string? ChangedBy
-) : IRequest<IncidentDto>;
+    string? ResolutionMessage
+) : IRequest<IncidentDto>
+{
+    [JsonIgnore]
+    public Guid Id { get; init; }
+
+    [JsonIgnore]
+    public string? ChangedBy { get; init; }
+}
 
 public class ResolveIncidentCommandHandler(
     AppDbContext db,

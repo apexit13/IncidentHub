@@ -3,7 +3,7 @@ using IncidentHub.Api.Contracts;
 using IncidentHub.Api.Domain;
 using IncidentHub.Api.Domain.Enums;
 using IncidentHub.Api.Hubs;
-using IncidentHub.Api.Infrastructure;
+using IncidentHub.Api.Infrastructure.Data;
 using MediatR;
 using Microsoft.AspNetCore.SignalR;
 using Severity = IncidentHub.Api.Domain.Enums.Severity;
@@ -13,9 +13,11 @@ namespace IncidentHub.Api.Features.Incidents.Commands.RaiseIncident;
 public record RaiseIncidentCommand(
     string Title,
     string? Description,
-    Severity Severity,
-    string? AssignedTo
-) : IRequest<IncidentDto>;
+    Severity Severity
+) : IRequest<IncidentDto>
+{
+    public string? AssignedTo { get; init; }
+}
 
 public class RaiseIncidentCommandHandler(
     AppDbContext db,

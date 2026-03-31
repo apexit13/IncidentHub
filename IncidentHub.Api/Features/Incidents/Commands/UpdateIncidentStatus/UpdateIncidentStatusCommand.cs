@@ -1,22 +1,28 @@
 using FluentValidation;
 using IncidentHub.Api.Contracts;
 using IncidentHub.Api.Domain;
-using IncidentHub.Api.Infrastructure;
 using MediatR;
 using Microsoft.AspNetCore.SignalR;
 using IncidentHub.Api.Hubs;
 using Microsoft.EntityFrameworkCore;
 using IncidentHub.Api.Domain.Enums;
+using IncidentHub.Api.Infrastructure.Data;
+using System.Text.Json.Serialization;
 
 namespace IncidentHub.Api.Features.Incidents.Commands.UpdateIncidentStatus;
 
 // Id is set by the endpoint from the route parameter: cmd with { Id = id }
 public record UpdateIncidentStatusCommand(
-    Guid Id,
     IncidentStatus NewStatus,
-    string? Message,
-    string? ChangedBy
-) : IRequest<IncidentDto>;
+    string? Message
+) : IRequest<IncidentDto>
+{
+    [JsonIgnore]
+    public Guid Id { get; init; }
+
+    [JsonIgnore]
+    public string? ChangedBy { get; init; }
+}
 
 public class UpdateIncidentStatusCommandHandler(
     AppDbContext db,

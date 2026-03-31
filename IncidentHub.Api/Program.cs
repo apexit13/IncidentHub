@@ -1,4 +1,5 @@
 using FluentValidation;
+using IncidentHub.Api.Common;
 using IncidentHub.Api.Features.Incidents.Commands.RaiseIncident;
 using IncidentHub.Api.Features.Incidents.Commands.ResolveIncident;
 using IncidentHub.Api.Features.Incidents.Commands.UpdateIncidentStatus;
@@ -6,14 +7,24 @@ using IncidentHub.Api.Features.Incidents.Queries.GetIncidentById;
 using IncidentHub.Api.Features.Incidents.Queries.GetIncidents;
 using IncidentHub.Api.Features.Timeline.Queries.GetIncidentTimeline;
 using IncidentHub.Api.Hubs;
-using IncidentHub.Api.Infrastructure;
+using IncidentHub.Api.Infrastructure.Data;
+using IncidentHub.Api.Infrastructure.Security;
+using IncidentHub.Api.Middleware;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddOpenApi();
+if (builder.Environment.IsDevelopment())
+{
+    // Add Bearer Auth section to OpenAPI document for testing without manual copy/paste of dev tokens each time
+    builder.Services.AddOpenApi(options =>
+    {
+        options.AddDocumentTransformer<BearerSecuritySchemeTransformer>();
+    });
+}
+
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<Program>());
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 var signalR = builder.Services.AddSignalR();
@@ -27,16 +38,23 @@ if (!string.IsNullOrEmpty(azureSignalRConnectionString))
 }
 builder.Services.AddDbContext<AppDbContext>(o =>
     o.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
+
 builder.Services.AddAuthentication().AddJwtBearer(o =>
 {
     o.Authority = $"https://{builder.Configuration["Auth0:Domain"]}/";
     o.Audience = builder.Configuration["Auth0:Audience"];
 });
+
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("responder", policy =>
-        policy.RequireClaim("https://incidenthub.example.com/roles", "responder"));
+        policy.RequireClaim(ClaimConstants.RolesUri, ClaimConstants.RoleTypeResponder));
+    options.AddPolicy("viewer", policy =>
+        policy.RequireClaim(ClaimConstants.RolesUri, ClaimConstants.RoleTypeViewer, ClaimConstants.RoleTypeResponder));
 });
+
+// CORS is just implemented for local dev.
+// For production, Azure configures CORS in front of the API to only allow specific clients
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("SignalRPolicy", policy => policy
@@ -53,14 +71,25 @@ var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
 {
+    // Mock middleware stays active in Development so we can still test
+    // locally via Scalar with the X-Role header — no Auth0 token needed.
+    app.UseMiddleware<TestUserMiddleware>();
+
     app.MapOpenApi();
     app.MapScalarApiReference(options =>
     {
         options.Title = "IncidentHub API";
-        options.Authentication = new ScalarAuthenticationOptions
+        options.Theme = ScalarTheme.DeepSpace;
+
+        // Read the dev token from appsettings.Development.json so we
+        // never have to paste it manually into Scalar
+        var devToken = builder.Configuration["Scalar:DevToken"] ?? string.Empty;
+
+        options.AddPreferredSecuritySchemes("Bearer");
+        options.AddHttpAuthentication("Bearer", auth =>
         {
-            PreferredSecuritySchemes = ["Bearer"]
-        };
+            auth.Token = devToken;
+        });
     });
 
     // Seed database in development
@@ -70,22 +99,14 @@ if (app.Environment.IsDevelopment())
     await SeedData.SeedAsync(db);       // seeds if empty
 }
 
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseHttpsRedirection();
-app.UseCors("SignalRPolicy"); // must come before MapHub
+app.UseCors("SignalRPolicy"); 
+app.UseAuthentication();
+app.UseAuthorization();
 app.MapHub<IncidentBroadcastHub>("/hubs/incidents");
 
 // Endpoints
-app.MapPost("/api/incidents", async (RaiseIncidentCommand cmd, IMediator m) =>
-{
-    var result = await m.Send(cmd);
-    return Results.Created($"/api/incidents/{result.Id}", result);
-})
-    .RequireAuthorization("responder");
-
-app.MapPatch("/api/incidents/{id}/status", async (Guid id,
-    UpdateIncidentStatusCommand cmd, IMediator m) => await m.Send(cmd with { Id = id }))
-    .RequireAuthorization("responder");
-
 app.MapGet("/api/incidents", async (IMediator m)
     => await m.Send(new GetIncidentsQuery()))
     .RequireAuthorization();
@@ -101,6 +122,23 @@ app.MapGet("/api/incidents/{id:guid}/timeline", async (Guid id, IMediator m)
     => await m.Send(new GetIncidentTimelineQuery(id)))
     .RequireAuthorization();
 
+app.MapPost("/api/incidents", async (RaiseIncidentCommand cmd, IMediator m, HttpContext http) =>
+{
+    var sub = http.User.FindFirst("sub")?.Value;
+    var result = await m.Send(cmd with { AssignedTo = sub });
+    return Results.Created($"/api/incidents/{result.Id}", result);
+})
+    .RequireAuthorization(ClaimConstants.RoleTypeResponder);
+
+app.MapPatch("/api/incidents/{id:guid}/status", async (
+    Guid id, UpdateIncidentStatusCommand cmd, IMediator m, HttpContext http) =>
+{
+    var sub = http.User.FindFirst("sub")?.Value;
+    var result = await m.Send(cmd with { Id = id, ChangedBy = sub });
+    return Results.Ok(result);
+})
+    .RequireAuthorization(ClaimConstants.RoleTypeResponder);
+
 app.MapPost("/api/incidents/{id:guid}/resolve", async (
     Guid id, ResolveIncidentCommand cmd, IMediator m, HttpContext http) =>
 {
@@ -108,6 +146,6 @@ app.MapPost("/api/incidents/{id:guid}/resolve", async (
     var result = await m.Send(cmd with { Id = id, ChangedBy = sub });
     return Results.Ok(result);
 })
-    .RequireAuthorization("responder");
+    .RequireAuthorization(ClaimConstants.RoleTypeResponder);
 
 app.Run();

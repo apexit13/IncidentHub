@@ -1,7 +1,7 @@
 using IncidentHub.Api.Domain;
 using Microsoft.EntityFrameworkCore;
 
-namespace IncidentHub.Api.Infrastructure;
+namespace IncidentHub.Api.Infrastructure.Data;
 
 public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
 {

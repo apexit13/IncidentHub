@@ -1,5 +1,5 @@
 ﻿using IncidentHub.Api.Contracts;
-using IncidentHub.Api.Infrastructure;
+using IncidentHub.Api.Infrastructure.Data;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
