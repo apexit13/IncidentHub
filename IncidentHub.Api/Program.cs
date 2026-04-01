@@ -15,7 +15,6 @@ using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 using Serilog;
-using Serilog.Events;
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()

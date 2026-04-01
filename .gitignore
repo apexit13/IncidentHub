@@ -362,3 +362,8 @@ MigrationBackup/
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
 /IncidentHub.Api/appsettings.Development.json
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env.local
