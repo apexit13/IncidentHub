@@ -40,21 +40,31 @@ public class RaiseIncidentCommandHandler(
         };
 
         db.Incidents.Add(incident);
-        db.IncidentTimelines.Add(new IncidentTimeline
+
+        // Create timeline entry
+        var timelineEntry = new IncidentTimeline
         {
             Id = Guid.NewGuid(),
             IncidentId = incident.Id,
-            Message = "Incident raised",
+            Message = $"Incident '{incident.Title}' raised with {incident.Severity} severity",
             Timestamp = DateTimeOffset.UtcNow,
+            ChangedBy = request.AssignedTo ?? "system",
             NewStatus = IncidentStatus.New
-        });
+        };
+
+        db.IncidentTimelines.Add(timelineEntry);
 
         await db.SaveChangesAsync(ct);
 
-        var dto = incident.ToDto();
+        // Map to DTOs using ToDto() methods
+        var incidentDto = incident.ToDto();
+        var timelineEntryDto = timelineEntry.ToDto();
+
+        // Broadcast both events
         try
         {
-            await hub.Clients.All.SendAsync("IncidentRaised", dto, ct);
+            await hub.Clients.All.SendAsync("IncidentRaised", incidentDto, ct);
+            await hub.Clients.All.SendAsync("TimelineEntryAdded", timelineEntryDto, ct);
         }
         catch (Exception ex)
         {
@@ -62,7 +72,7 @@ public class RaiseIncidentCommandHandler(
                 "SignalR broadcast failed for incident {Id}", incident.Id);
         }
 
-        return dto;
+        return incidentDto;
     }
 }
 

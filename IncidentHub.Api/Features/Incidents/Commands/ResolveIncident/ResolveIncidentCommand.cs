@@ -42,7 +42,7 @@ public class ResolveIncidentCommandHandler(
         incident.Status = IncidentStatus.Resolved;
         incident.ResolvedAt = DateTimeOffset.UtcNow;
 
-        db.IncidentTimelines.Add(new IncidentTimeline
+        var timelineEntry = new IncidentTimeline
         {
             Id = Guid.NewGuid(),
             IncidentId = incident.Id,
@@ -50,14 +50,19 @@ public class ResolveIncidentCommandHandler(
             ChangedBy = request.ChangedBy,
             Timestamp = DateTimeOffset.UtcNow,
             NewStatus = IncidentStatus.Resolved
-        });
+        };
+
+        db.IncidentTimelines.Add(timelineEntry);
 
         await db.SaveChangesAsync(ct);
 
-        var dto = incident.ToDto();
+        var incidentDto = incident.ToDto();
+        var timelineEntryDto = timelineEntry.ToDto();
+
         try
         {
-            await hub.Clients.All.SendAsync("IncidentResolved", dto, ct);
+            await hub.Clients.All.SendAsync("IncidentResolved", incidentDto, ct);
+            await hub.Clients.All.SendAsync("TimelineEntryAdded", timelineEntryDto, ct);
         }
         catch (Exception ex)
         {
@@ -65,7 +70,7 @@ public class ResolveIncidentCommandHandler(
                 "SignalR broadcast failed for resolved incident {Id}", incident.Id);
         }
 
-        return dto;
+        return incidentDto;
     }
 }
 

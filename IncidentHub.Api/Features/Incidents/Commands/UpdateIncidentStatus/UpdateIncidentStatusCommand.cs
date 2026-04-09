@@ -46,7 +46,7 @@ public class UpdateIncidentStatusCommandHandler(
         var timelineMessage = request.Message
             ?? $"Status changed from {previousStatus} to {request.NewStatus}";
 
-        db.IncidentTimelines.Add(new IncidentTimeline
+        var timelineEntry = new IncidentTimeline
         {
             Id = Guid.NewGuid(),
             IncidentId = incident.Id,
@@ -54,18 +54,23 @@ public class UpdateIncidentStatusCommandHandler(
             ChangedBy = request.ChangedBy,
             Timestamp = DateTimeOffset.UtcNow,
             NewStatus = request.NewStatus
-        });
+        };
+
+        db.IncidentTimelines.Add(timelineEntry);
 
         await db.SaveChangesAsync(ct);
 
-        var dto = incident.ToDto();
+        var incidentDto = incident.ToDto();
+        var timelineEntryDto = timelineEntry.ToDto();
+
         var hubEvent = request.NewStatus == IncidentStatus.Resolved
             ? "IncidentResolved"
             : "IncidentUpdated";
 
         try
         {
-            await hub.Clients.All.SendAsync(hubEvent, dto, ct);
+            await hub.Clients.All.SendAsync(hubEvent, incidentDto, ct);
+            await hub.Clients.All.SendAsync("TimelineEntryAdded", timelineEntryDto, ct);
         }
         catch (Exception ex)
         {
@@ -74,7 +79,7 @@ public class UpdateIncidentStatusCommandHandler(
                 incident.Id, hubEvent);
         }
 
-        return dto;
+        return incidentDto;
     }
 }
 
