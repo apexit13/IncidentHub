@@ -76,7 +76,7 @@ try
     }
 
     builder.Services.AddDbContext<AppDbContext>(o =>
-        o.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
+        o.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
     builder.Services.AddAuthentication().AddJwtBearer(o =>
     {
