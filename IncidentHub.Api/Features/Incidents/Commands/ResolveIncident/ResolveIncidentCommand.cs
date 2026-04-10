@@ -31,46 +31,57 @@ public class ResolveIncidentCommandHandler(
     public async Task<IncidentDto> Handle(
         ResolveIncidentCommand request, CancellationToken ct)
     {
-        var incident = await db.Incidents
-            .FirstOrDefaultAsync(i => i.Id == request.Id, ct)
-            ?? throw new KeyNotFoundException($"Incident {request.Id} not found.");
-
-        if (incident.Status == IncidentStatus.Resolved)
-            throw new InvalidOperationException(
-                $"Incident {request.Id} is already resolved.");
-
-        incident.Status = IncidentStatus.Resolved;
-        incident.ResolvedAt = DateTimeOffset.UtcNow;
-
-        var timelineEntry = new IncidentTimeline
-        {
-            Id = Guid.NewGuid(),
-            IncidentId = incident.Id,
-            Message = request.ResolutionMessage ?? "Incident resolved.",
-            ChangedBy = request.ChangedBy,
-            Timestamp = DateTimeOffset.UtcNow,
-            NewStatus = IncidentStatus.Resolved
-        };
-
-        db.IncidentTimelines.Add(timelineEntry);
-
-        await db.SaveChangesAsync(ct);
-
-        var incidentDto = incident.ToDto();
-        var timelineEntryDto = timelineEntry.ToDto();
-
         try
         {
-            await hub.Clients.All.SendAsync("IncidentResolved", incidentDto, ct);
-            await hub.Clients.All.SendAsync("TimelineEntryAdded", timelineEntryDto, ct);
+            logger.LogInformation("Resolving incident {Id}", request.Id);
+
+            var incident = await db.Incidents
+                .FirstOrDefaultAsync(i => i.Id == request.Id, ct)
+                ?? throw new KeyNotFoundException($"Incident {request.Id} not found.");
+
+            if (incident.Status == IncidentStatus.Resolved)
+                throw new InvalidOperationException(
+                    $"Incident {request.Id} is already resolved.");
+
+            incident.Status = IncidentStatus.Resolved;
+            incident.ResolvedAt = DateTimeOffset.UtcNow;
+
+            var timelineEntry = new IncidentTimeline
+            {
+                Id = Guid.NewGuid(),
+                IncidentId = incident.Id,
+                Message = request.ResolutionMessage ?? "Incident resolved.",
+                ChangedBy = request.ChangedBy,
+                Timestamp = DateTimeOffset.UtcNow,
+                NewStatus = IncidentStatus.Resolved
+            };
+
+            db.IncidentTimelines.Add(timelineEntry);
+
+            await db.SaveChangesAsync(ct);
+
+            var incidentDto = incident.ToDto();
+            var timelineEntryDto = timelineEntry.ToDto();
+
+            try
+            {
+                await hub.Clients.All.SendAsync("IncidentResolved", incidentDto, ct);
+                await hub.Clients.All.SendAsync("TimelineEntryAdded", timelineEntryDto, ct);
+                logger.LogInformation("Incident {Id} resolved and broadcast successfully", incident.Id);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex,
+                    "SignalR broadcast failed for resolved incident {Id}", incident.Id);
+            }
+
+            return incidentDto;
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex,
-                "SignalR broadcast failed for resolved incident {Id}", incident.Id);
+            logger.LogError(ex, "Failed to resolve incident {Id}", request.Id);
+            throw;
         }
-
-        return incidentDto;
     }
 }
 

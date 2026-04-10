@@ -15,6 +15,7 @@ using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 using Serilog;
+using Serilog.Events;
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
@@ -25,15 +26,21 @@ try
     Log.Information("IncidentHub API starting up");
     var builder = WebApplication.CreateBuilder(args);
 
-    builder.Host.UseSerilog((ctx, services, config) => config
-        .ReadFrom.Configuration(ctx.Configuration)
-        .ReadFrom.Services(services)
-        .Enrich.FromLogContext()
-        .Enrich.WithMachineName()
-        .Enrich.WithThreadId()
-        .WriteTo.ApplicationInsights(
-            services.GetService<TelemetryConfiguration>() ?? TelemetryConfiguration.CreateDefault(),
-            TelemetryConverter.Traces));
+    builder.Host.UseSerilog((context, services, configuration) =>
+    {
+        var config = configuration
+            .ReadFrom.Configuration(context.Configuration)
+            .ReadFrom.Services(services);
+
+        // Add Application Insights only if connection string is provided
+        var aiConnectionString = context.Configuration["ApplicationInsights:ConnectionString"];
+        if (!string.IsNullOrEmpty(aiConnectionString))
+        {
+            config.WriteTo.ApplicationInsights(aiConnectionString, TelemetryConverter.Traces);
+        }
+    });
+
+
 
     if (builder.Environment.IsDevelopment())
     {
@@ -44,10 +51,19 @@ try
         });
     }
 
+    builder.Services.AddHttpContextAccessor();
     builder.Services.AddMediatR(typeof(Program));
+    builder.Services.ConfigureHttpJsonOptions(options =>
+    {
+        options.SerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+    });
     builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(LoggingBehaviour<,>));
     builder.Services.AddValidatorsFromAssemblyContaining<Program>();
-    builder.Services.AddApplicationInsightsTelemetry();
+    if (!builder.Environment.IsDevelopment())
+    {
+        // Only add Application Insights in non-development environments to avoid polluting telemetry with dev/test data 
+        builder.Services.AddApplicationInsightsTelemetry();
+    }
 
     var signalR = builder.Services.AddSignalR();
 
@@ -89,8 +105,6 @@ try
             .AllowAnyMethod()
             .AllowCredentials());
     });
-
-    builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(LoggingBehaviour<,>));
 
     var app = builder.Build();
 

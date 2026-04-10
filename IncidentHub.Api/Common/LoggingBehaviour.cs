@@ -15,34 +15,56 @@ public class LoggingBehaviour<TRequest, TResponse>(
         CancellationToken ct)
     {
         var requestName = typeof(TRequest).Name;
-        var user = httpContextAccessor.HttpContext?.User;
-        var userId = user?.FindFirst("sub")?.Value ?? "anonymous";
-        var userRole = user?.FindFirst(ClaimConstants.RolesUri)?.Value ?? "none";
 
-        using (LogContext.PushProperty("UserId", userId))
-        using (LogContext.PushProperty("UserRole", userRole))
+        // Only log important operations to reduce noise
+        if (IsImportantOperation(requestName))
         {
-            logger.LogInformation(
-                "Handling {RequestName} by {UserId} [{UserRole}] {@Request}",
-                requestName, userId, userRole, request);
+            var user = httpContextAccessor.HttpContext?.User;
+            var userId = user?.FindFirst("sub")?.Value ?? "anonymous";
+            var userRole = user?.FindFirst(ClaimConstants.RolesUri)?.Value ?? "none";
 
-            try
+            using (LogContext.PushProperty("UserId", userId))
+            using (LogContext.PushProperty("UserRole", userRole))
+            using (LogContext.PushProperty("RequestName", requestName))
             {
-                var response = await next();
-
                 logger.LogInformation(
-                    "Handled {RequestName} successfully by {UserId}",
-                    requestName, userId);
+                    "Processing {RequestName} for user {UserId} [{UserRole}]",
+                    requestName, userId, userRole);
 
-                return response;
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex,
-                    "Error handling {RequestName} by {UserId}",
-                    requestName, userId);
-                throw;
+                var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+                try
+                {
+                    var response = await next();
+
+                    logger.LogInformation(
+                        "Completed {RequestName} in {ElapsedMs}ms for user {UserId}",
+                        requestName, stopwatch.ElapsedMilliseconds, userId);
+
+                    return response;
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex,
+                        "Failed {RequestName} after {ElapsedMs}ms for user {UserId}",
+                        requestName, stopwatch.ElapsedMilliseconds, userId);
+                    throw;
+                }
             }
         }
+        else
+        {
+            // Skip logging for less important operations
+            return await next();
+        }
+    }
+
+    private static bool IsImportantOperation(string requestName)
+    {
+        // Only log incident-related commands, not queries or minor operations
+        return requestName.Contains("Incident") &&
+               (requestName.Contains("Create") ||
+                requestName.Contains("Update") ||
+                requestName.Contains("Resolve") ||
+                requestName.Contains("Raise"));
     }
 }

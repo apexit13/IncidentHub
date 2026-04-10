@@ -10,7 +10,7 @@ namespace IncidentHub.Api.Hubs;
 ///   "IncidentResolved"    → IncidentDto
 ///   "TimelineEntryAdded"  → TimelineEntryDto
 /// </summary>
-[Authorize]
+//[Authorize]
 public class IncidentBroadcastHub : Hub
 {
     // No methods needed for the current feature set.

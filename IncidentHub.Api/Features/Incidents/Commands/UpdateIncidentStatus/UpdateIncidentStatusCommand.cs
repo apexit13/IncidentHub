@@ -30,56 +30,71 @@ public class UpdateIncidentStatusCommandHandler(
     ILogger<UpdateIncidentStatusCommandHandler> logger)
     : IRequestHandler<UpdateIncidentStatusCommand, IncidentDto>
 {
+
     public async Task<IncidentDto> Handle(
         UpdateIncidentStatusCommand request, CancellationToken ct)
     {
-        var incident = await db.Incidents
-            .FirstOrDefaultAsync(i => i.Id == request.Id, ct)
-            ?? throw new KeyNotFoundException($"Incident {request.Id} not found.");
-
-        var previousStatus = incident.Status;
-        incident.Status = request.NewStatus;
-
-        if (request.NewStatus == IncidentStatus.Resolved)
-            incident.ResolvedAt = DateTimeOffset.UtcNow;
-
-        var timelineMessage = request.Message
-            ?? $"Status changed from {previousStatus} to {request.NewStatus}";
-
-        var timelineEntry = new IncidentTimeline
-        {
-            Id = Guid.NewGuid(),
-            IncidentId = incident.Id,
-            Message = timelineMessage,
-            ChangedBy = request.ChangedBy,
-            Timestamp = DateTimeOffset.UtcNow,
-            NewStatus = request.NewStatus
-        };
-
-        db.IncidentTimelines.Add(timelineEntry);
-
-        await db.SaveChangesAsync(ct);
-
-        var incidentDto = incident.ToDto();
-        var timelineEntryDto = timelineEntry.ToDto();
-
-        var hubEvent = request.NewStatus == IncidentStatus.Resolved
-            ? "IncidentResolved"
-            : "IncidentUpdated";
-
         try
         {
-            await hub.Clients.All.SendAsync(hubEvent, incidentDto, ct);
-            await hub.Clients.All.SendAsync("TimelineEntryAdded", timelineEntryDto, ct);
+
+            var incident = await db.Incidents
+                .FirstOrDefaultAsync(i => i.Id == request.Id, ct)
+                ?? throw new KeyNotFoundException($"Incident {request.Id} not found.");
+
+            var previousStatus = incident.Status;
+            incident.Status = request.NewStatus;
+
+            if (request.NewStatus == IncidentStatus.Resolved)
+                incident.ResolvedAt = DateTimeOffset.UtcNow;
+
+            var timelineMessage = request.Message
+                ?? $"Status changed from {previousStatus} to {request.NewStatus}";
+
+            var timelineEntry = new IncidentTimeline
+            {
+                Id = Guid.NewGuid(),
+                IncidentId = incident.Id,
+                Message = timelineMessage,
+                ChangedBy = request.ChangedBy,
+                Timestamp = DateTimeOffset.UtcNow,
+                NewStatus = request.NewStatus
+            };
+
+            db.IncidentTimelines.Add(timelineEntry);
+
+            await db.SaveChangesAsync(ct);
+
+            var incidentDto = incident.ToDto();
+            var timelineEntryDto = timelineEntry.ToDto();
+
+            var hubEvent = request.NewStatus == IncidentStatus.Resolved
+                ? "IncidentResolved"
+                : "IncidentUpdated";
+
+            try
+            {
+                await hub.Clients.All.SendAsync(hubEvent, incidentDto, ct);
+                await hub.Clients.All.SendAsync("TimelineEntryAdded", timelineEntryDto, ct);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex,
+                    "SignalR broadcast failed for incident {Id} event {Event}",
+                    incident.Id, hubEvent);
+            }
+
+            logger.LogInformation(
+                "Incident {Id} status updated from {PreviousStatus} to {NewStatus}",
+                incident.Id, previousStatus, request.NewStatus);
+
+            return incidentDto;
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex,
-                "SignalR broadcast failed for incident {Id} event {Event}",
-                incident.Id, hubEvent);
+            logger.LogError(ex, "Failed to update incident {Id} status to {NewStatus}",
+                request.Id, request.NewStatus);
+            throw;
         }
-
-        return incidentDto;
     }
 }
 
