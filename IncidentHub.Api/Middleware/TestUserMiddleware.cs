@@ -16,7 +16,7 @@ public class TestUserMiddleware
         //   (omit)                 → defaults to responder for convenience
         var role = context.Request.Headers["X-Role"].ToString();
         if (string.IsNullOrEmpty(role))
-            role = "responder";
+            role = ClaimConstants.RoleTypeResponder;
 
         var claims = new[]
         {
