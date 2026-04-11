@@ -2,7 +2,10 @@ name: Deploy IncidentHub API to Azure
 
 on:
   push:
-    branches: [ main ]
+    branches: 
+      - main
+    paths: 
+      - 'IncidentHub.Api/**'
   workflow_dispatch:
 
 env:
