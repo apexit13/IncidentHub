@@ -51,6 +51,11 @@ try
         });
     }
 
+    builder.Services.AddOpenApi(options =>
+    {
+        options.AddDocumentTransformer<BearerSecuritySchemeTransformer>();
+    });
+
     builder.Services.AddHttpContextAccessor();
     builder.Services.AddMediatR(typeof(Program));
     builder.Services.ConfigureHttpJsonOptions(options =>
