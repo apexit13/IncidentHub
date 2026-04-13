@@ -1,3 +1,5 @@
+import type { Incident, TimelineEntry } from '../types';
+
 const BASE_URL = import.meta.env.VITE_API_URL ?? "https://localhost:7125";
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
