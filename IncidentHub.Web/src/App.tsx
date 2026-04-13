@@ -102,7 +102,7 @@ function StatusBadge({ status }: { status: string }) {
   const s = STAT_CLASSES[status] ?? { badge: "bg-gray-100 text-gray-500", dot: "bg-gray-400" };
   return (
     <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold tracking-wide px-2 py-1 rounded-full ${s.badge}`}>
-      <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${s.dot}`} />
+      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${s.dot}`} />
       {status}
     </span>
   );
@@ -128,7 +128,7 @@ function ConnectionBar({ status }: { status: string }) {
   const m = map[status] ?? map.disconnected;
   return (
     <div className={`flex items-center gap-2 px-6 py-1.5 border-b text-xs font-medium ${m.bg} ${m.text}`}>
-      <span className={`w-2 h-2 rounded-full flex-shrink-0 ${m.dot}`} />
+      <span className={`w-2 h-2 rounded-full shrink-0 ${m.dot}`} />
       {m.label}
       {status === "connected" && <LiveDot />}
     </div>
@@ -179,7 +179,7 @@ function Topbar({ user, onNew, role }: { user: string; onNew: () => void; role: 
 // ─── StatCard ─────────────────────────────────────────────────────────────────
 function StatCard({ label, value, borderColor, sub }: { label: string; value: number; borderColor: string; sub: string }) {
   return (
-    <div className="bg-white rounded-lg px-5 py-4 flex-1 min-w-[120px] shadow-sm" style={{ borderTop: `3px solid ${borderColor}` }}>
+    <div className="bg-white rounded-lg px-5 py-4 flex-1 min-w-30 shadow-sm" style={{ borderTop: `3px solid ${borderColor}` }}>
       <div className="text-3xl font-extrabold leading-none" style={{ color: borderColor }}>{value}</div>
       <div className="text-[11px] font-bold text-gray-500 tracking-wider uppercase mt-1">{label}</div>
       <div className="text-[11px] text-gray-400 mt-0.5">{sub}</div>
@@ -199,7 +199,7 @@ function FiltersBar({ filter, setFilter, search, setSearch }: {
         value={search}
         onChange={e => setSearch(e.target.value)}
         placeholder="Search incidents…"
-        className="border border-gray-300 rounded px-3 py-1.5 text-sm outline-none flex-1 min-w-[180px] focus:border-blue-500 transition-colors"
+        className="border border-gray-300 rounded px-3 py-1.5 text-sm outline-none flex-1 min-w-30 focus:border-blue-500 transition-colors"
       />
       <div className="flex gap-1 flex-wrap">
         {statuses.map(s => (
@@ -236,7 +236,7 @@ function IncidentRow({ incident, isNew, onClick, isSelected }: {
       <td className="px-3.5 py-2.5 border-b border-gray-100 align-middle">
         <SeverityBadge severity={incident.severity} />
       </td>
-      <td className="px-3.5 py-2.5 border-b border-gray-100 align-middle max-w-[300px]">
+      <td className="px-3.5 py-2.5 border-b border-gray-100 align-middle max-w-75">
         <div className="font-semibold text-sm text-gray-800 truncate">{incident.title}</div>
         {incident.description && (
           <div className="text-xs text-gray-500 truncate mt-0.5">{incident.description}</div>
@@ -306,7 +306,7 @@ function TimelinePanel({ incidentId }: { incidentId: string }) {
       {entries.slice().reverse().map((e, idx) => (
         <div key={e.id} className="flex gap-3 mb-4">
           <div className="flex flex-col items-center">
-            <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 mt-0.5 border-2 ${
+            <div className={`w-2.5 h-2.5 rounded-full shrink-0 mt-0.5 border-2 ${
               idx === 0 ? "bg-blue-600 border-blue-600" : "bg-gray-200 border-gray-400"
             }`} />
             {idx < entries.length - 1 && <div className="w-px flex-1 bg-gray-200 mt-1" />}
@@ -338,7 +338,7 @@ function IncidentDetailPanel({ incident, onClose, onStatusChange, onResolve, rol
   const statuses: Status[] = ["New", "Investigating", "Identified", "Monitoring"];
 
   return (
-    <div className="w-96 flex-shrink-0 border-l border-gray-200 flex flex-col h-full overflow-hidden bg-white">
+    <div className="w-96 shrink-0 border-l border-gray-200 flex flex-col h-full overflow-hidden bg-white">
       <div className="px-5 py-4 border-b border-gray-200 flex items-start gap-2.5">
         <div className="flex-1">
           <div className="flex gap-1.5 mb-1.5">
@@ -439,7 +439,7 @@ function NewIncidentModal({ onClose, onSubmit, isSubmitting }: {
 
   return (
     <div
-      className="fixed inset-0 bg-black/50 flex items-center justify-center z-[1000] p-5"
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-1000 p-5"
       onClick={e => e.target === e.currentTarget && onClose()}
     >
       <div className="bg-white rounded-xl w-full max-w-lg shadow-2xl">
@@ -520,7 +520,7 @@ function Toast({ message, onDone }: { message: string; onDone: () => void }) {
     return () => clearTimeout(t);
   }, []);
   return (
-    <div className="fixed bottom-6 right-6 z-[2000] bg-gray-900 text-white px-4 py-3 rounded-lg shadow-2xl flex items-center gap-2.5 text-sm font-semibold max-w-sm">
+    <div className="fixed bottom-6 right-6 z-2000 bg-gray-900 text-white px-4 py-3 rounded-lg shadow-2xl flex items-center gap-2.5 text-sm font-semibold max-w-sm">
       <span className="text-base">📡</span>
       {message}
     </div>
@@ -536,7 +536,7 @@ function Sidebar() {
     { icon: "⚙️", label: "Settings", active: false },
   ];
   return (
-    <aside className="w-14 flex-shrink-0 flex flex-col items-center pt-4 gap-1" style={{ background: "#1f4479" }}>
+    <aside className="w-14 shrink-0 flex flex-col items-center pt-4 gap-1" style={{ background: "#1f4479" }}>
       {links.map(l => (
         <div
           key={l.label}
@@ -629,9 +629,12 @@ export default function App() {
     .filter(i => !search || i.title.toLowerCase().includes(search.toLowerCase()) || i.description?.toLowerCase().includes(search.toLowerCase()))
     .sort((a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity]);
 
+  const todayString = new Date().toDateString();
   const activeCount = incidents.filter(i => i.status !== "Resolved").length;
   const critCount = incidents.filter(i => i.severity === "Critical" && i.status !== "Resolved").length;
-  const resolvedToday = incidents.filter(i => i.resolvedAt && Date.now() - new Date(i.resolvedAt).getTime() < 86_400_000).length;
+  const resolvedToday = incidents.filter(i => 
+    i.resolvedAt && new Date(i.resolvedAt).toDateString() === todayString
+  ).length;
 
   return (
     <div className="font-sans bg-gray-100 min-h-screen flex flex-col">
@@ -663,7 +666,7 @@ export default function App() {
           )}
 
           {!isLoading && !isError && (
-            <div className="flex flex-1 bg-white rounded-lg overflow-hidden shadow-sm min-h-[400px]">
+            <div className="flex flex-1 bg-white rounded-lg overflow-hidden shadow-sm min-h-100">
               <div className="flex-1 overflow-auto">
                 <IncidentTable
                   incidents={filtered}
