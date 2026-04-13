@@ -136,12 +136,18 @@ try
             });
         });
 
-        // Seed database in development
-        using var scope = app.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        await db.Database.MigrateAsync();   // runs any pending migrations
-        await SeedData.SeedAsync(db);       // seeds if empty
+        //// Seed database in development
+        //using var scope = app.Services.CreateScope();
+        //var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        //await db.Database.MigrateAsync();   // runs any pending migrations
+        //await SeedData.SeedAsync(db);       // seeds if empty
     }
+
+    // Seed database in development
+    using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await db.Database.MigrateAsync();   // runs any pending migrations
+    await SeedData.SeedAsync(db);       // seeds if empty
 
     app.MapOpenApi();
     app.MapScalarApiReference(options =>
