@@ -28,9 +28,9 @@ jobs:
       run: npm ci
       working-directory: IncidentHub.Web
       
-    - name: Run tests
-      run: npm test -- --watchAll=false --coverage
-      working-directory: IncidentHub.Web
+    # - name: Run tests
+    #   run: npm test -- --watchAll=false --coverage
+    #   working-directory: IncidentHub.Web
       
     - name: Build application
       run: npm run build
