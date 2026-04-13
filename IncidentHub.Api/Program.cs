@@ -99,7 +99,7 @@ try
         options.AddPolicy("SignalRPolicy", policy => policy
             .WithOrigins(
                 "http://localhost:5173",
-                "https://incidenthub.azurestaticapps.net"
+                "https://api-incidenthub-demo.azurewebsites.net"
             )
             .AllowAnyHeader()
             .AllowAnyMethod()
