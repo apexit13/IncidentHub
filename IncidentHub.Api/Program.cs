@@ -51,11 +51,6 @@ try
         });
     }
 
-    builder.Services.AddOpenApi(options =>
-    {
-        options.AddDocumentTransformer<BearerSecuritySchemeTransformer>();
-    });
-
     builder.Services.AddHttpContextAccessor();
     builder.Services.AddMediatR(typeof(Program));
     builder.Services.ConfigureHttpJsonOptions(options =>
@@ -136,35 +131,12 @@ try
             });
         });
 
-        //// Seed database in development
-        //using var scope = app.Services.CreateScope();
-        //var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        //await db.Database.MigrateAsync();   // runs any pending migrations
-        //await SeedData.SeedAsync(db);       // seeds if empty
+        // Seed database in development
+        using var scope = app.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        await db.Database.MigrateAsync();   // runs any pending migrations
+        await SeedData.SeedAsync(db);       // seeds if empty
     }
-
-    // Seed database in development
-    using var scope = app.Services.CreateScope();
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    await db.Database.MigrateAsync();   // runs any pending migrations
-    await SeedData.SeedAsync(db);       // seeds if empty
-
-    app.MapOpenApi();
-    app.MapScalarApiReference(options =>
-    {
-        options.Title = "IncidentHub API";
-        options.Theme = ScalarTheme.DeepSpace;
-
-        // Read the dev token from appsettings.Development.json so we
-        // never have to paste it manually into Scalar
-        var devToken = builder.Configuration["Scalar:DevToken"] ?? string.Empty;
-
-        options.AddPreferredSecuritySchemes("Bearer");
-        options.AddHttpAuthentication("Bearer", auth =>
-        {
-            auth.Token = devToken;
-        });
-    });
 
     app.UseMiddleware<ExceptionHandlingMiddleware>();
     app.UseSerilogRequestLogging();
