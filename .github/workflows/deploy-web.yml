@@ -2,43 +2,66 @@ name: Deploy IncidentHub Web to Azure Static Web Apps
 
 on:
   push:
-    branches: [ main ]
-    paths: 
+    branches:
+      - main
+    paths:
       - 'IncidentHub.Web/**'
   workflow_dispatch:
 
-env:
-  PROJECT_PATH: './web'
-
 jobs:
-  build-and-deploy:
+  build:
+    name: Build Frontend
     runs-on: ubuntu-latest
     
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      
-    - name: Setup Node.js
-      uses: actions/setup-node@v3
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
       with:
         node-version: '18'
         cache: 'npm'
-        cache-dependency-path: ${{ env.PROJECT_PATH }}/package-lock.json
+        cache-dependency-path: IncidentHub.Web/package-lock.json
         
     - name: Install dependencies
-      working-directory: ${{ env.PROJECT_PATH }}
       run: npm ci
+      working-directory: IncidentHub.Web
       
-    - name: Build
-      working-directory: ${{ env.PROJECT_PATH }}
+    - name: Run tests
+      run: npm test -- --watchAll=false --coverage
+      working-directory: IncidentHub.Web
+      
+    - name: Build application
       run: npm run build
+      working-directory: IncidentHub.Web
       
+    - name: Zip build artifact
+      run: cd IncidentHub.Web/dist && zip -r ../../web-deployment.zip .
+ 
+    - name: Upload Artifact to GitHub
+      uses: actions/upload-artifact@v4
+      with:
+        name: web-package
+        path: web-deployment.zip
+
+  deploy:
+    name: Deploy to Azure Static Web Apps
+    runs-on: ubuntu-latest
+    needs: build
+    
+    steps:
+    - name: Download Artifact from GitHub
+      uses: actions/download-artifact@v4
+      with:
+        name: web-package
+
+    - name: Azure Login
+      uses: azure/login@v2
+      with:
+        creds: \${{ secrets.AZURE_CREDENTIALS }}
+
     - name: Deploy to Azure Static Web Apps
       uses: Azure/static-web-apps-deploy@v1
       with:
-        azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
-        repo_token: ${{ secrets.GITHUB_TOKEN }}
-        action: "upload"
-        app_location: "/web"
-        api_location: ""
-        output_location: "dist"
+        azure_static_web_apps_api_token: \${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN
