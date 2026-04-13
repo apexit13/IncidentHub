@@ -96,10 +96,11 @@ try
     // For production, Azure configures CORS in front of the API to only allow specific clients
     builder.Services.AddCors(options =>
     {
-        options.AddPolicy("SignalRPolicy", policy => policy
+        options.AddPolicy("FrontendCors", policy => policy
             .WithOrigins(
-                "http://localhost:5173",
-                "https://api-incidenthub-demo.azurewebsites.net"
+            "https://lively-ocean-03dfd8a0f.7.azurestaticapps.net",
+            "http://localhost:5173",
+            "https://localhost:7123"
             )
             .AllowAnyHeader()
             .AllowAnyMethod()
@@ -141,7 +142,7 @@ try
     app.UseMiddleware<ExceptionHandlingMiddleware>();
     app.UseSerilogRequestLogging();
     app.UseHttpsRedirection();
-    app.UseCors("SignalRPolicy");
+    app.UseCors("FrontendCors");
     app.UseAuthentication();
     app.UseAuthorization();
     app.MapHub<IncidentBroadcastHub>("/hubs/incidents");
