@@ -563,7 +563,7 @@ function Sidebar() {
 
 // ─── App ──────────────────────────────────────────────────────────────────────
 export default function App() {
-  const { user, isAuthenticated, isLoading, logout } = useAuth0();
+  const { user, isLoading, logout } = useAuth0();
   const queryClient = useQueryClient();
   const { connectionState } = useIncidentSignalR();
   const incidentApi = useIncidentApi();
