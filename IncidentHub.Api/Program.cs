@@ -86,9 +86,9 @@ try
 
     builder.Services.AddAuthorization(options =>
     {
-        options.AddPolicy("responder", policy =>
+        options.AddPolicy(ClaimConstants.RoleTypeResponder, policy =>
             policy.RequireClaim(ClaimConstants.RolesUri, ClaimConstants.RoleTypeResponder));
-        options.AddPolicy("viewer", policy =>
+        options.AddPolicy(ClaimConstants.RoleTypeViewer, policy =>
             policy.RequireClaim(ClaimConstants.RolesUri, ClaimConstants.RoleTypeViewer, ClaimConstants.RoleTypeResponder));
     });
 

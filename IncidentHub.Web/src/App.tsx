@@ -156,7 +156,7 @@ function Topbar({ user, onNew, role, onLogout }: {
         </span>
       </div>
 
-      {role === "responder" && onNew && (
+      {role === "incidenthub.responder" && onNew && (
         <button
           onClick={onNew}
           className="flex items-center gap-1.5 bg-red-500 hover:bg-red-600 text-white text-sm font-bold px-4 py-1.5 rounded transition-colors"
@@ -381,7 +381,7 @@ function IncidentDetailPanel({ incident, onClose, onStatusChange, onResolve, rol
           ))}
         </div>
 
-        {role === "responder" && incident.status !== "Resolved" && (
+        {role === "incidenthub.responder" && incident.status !== "Resolved" && (
           <div>
             <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Update Status</div>
             <div className="flex flex-wrap gap-1.5">
@@ -576,7 +576,7 @@ export default function App() {
 
   // Get user info from Auth0
   const userName = user?.name || "Unknown User";
-  const userRole = user?.['https://incidenthub.example.com/roles']?.[0] || "viewer";
+  const userRole = user?.['https://incidenthub.example.com/roles']?.[0] || "incidenthub.viewer";
 
   function addToast(msg: string) {
     const id = Date.now();
@@ -670,7 +670,7 @@ const { data: incidents = [], isLoading: incidentsLoading, isError } = useQuery(
       <Topbar 
         user={userName} 
         role={userRole} 
-        onNew={() => setShowModal(true)}
+        onNew={userRole === "incidenthub.responder" ? () => setShowModal(true) : undefined}
         onLogout={() => logout({ logoutParams: { returnTo: window.location.origin } })}
       />
       <ConnectionBar status={connectionState} />
