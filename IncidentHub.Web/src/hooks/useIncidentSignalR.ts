@@ -8,8 +8,15 @@ export const useIncidentSignalR = () => {
   const [connectionState, setConnectionState] = useState<'connecting' | 'connected' | 'disconnected'>('disconnected');
   const queryClient = useQueryClient();
   const connectionRef = useRef<HubConnection | null>(null);
+  const isConnectingRef = useRef(false);
 
   useEffect(() => {
+    // Prevent multiple connections
+    if (connectionRef.current || isConnectingRef.current) {
+      return;
+    }
+
+    isConnectingRef.current = true;
     const hubUrl = `${import.meta.env.VITE_API_URL}/hubs/incidents`;
 
     const hubConnection = new HubConnectionBuilder()
@@ -24,6 +31,7 @@ export const useIncidentSignalR = () => {
       })
       .build();
 
+    // Prevent duplicate events by checking if they already exist
     hubConnection.on('IncidentRaised', (newIncident: Incident) => {
       console.log('📨 SignalR: IncidentRaised', newIncident);
       queryClient.setQueryData(['incidents'], (old: Incident[] = []) => {
@@ -35,6 +43,8 @@ export const useIncidentSignalR = () => {
     hubConnection.on('IncidentUpdated', (updatedIncident: Incident) => {
       console.log('📨 SignalR: IncidentUpdated', updatedIncident);
       queryClient.setQueryData(['incidents'], (old: Incident[] = []) => {
+        const exists = old.some(i => i.id === updatedIncident.id);
+        if (!exists) return old;
         return old.map(incident =>
           incident.id === updatedIncident.id ? updatedIncident : incident
         );
@@ -47,6 +57,8 @@ export const useIncidentSignalR = () => {
     hubConnection.on('IncidentResolved', (resolvedIncident: Incident) => {
       console.log('📨 SignalR: IncidentResolved', resolvedIncident);
       queryClient.setQueryData(['incidents'], (old: Incident[] = []) => {
+        const exists = old.some(i => i.id === resolvedIncident.id);
+        if (!exists) return old;
         return old.map(incident =>
           incident.id === resolvedIncident.id ? resolvedIncident : incident
         );
@@ -57,13 +69,18 @@ export const useIncidentSignalR = () => {
       console.log('📨 SignalR: TimelineEntryAdded', timelineEntry);
       queryClient.setQueryData(
         ['timeline', timelineEntry.incidentId],
-        (old: TimelineEntry[] = []) => [...old, timelineEntry]
+        (old: TimelineEntry[] = []) => {
+          if (old.some(entry => entry.id === timelineEntry.id)) return old;
+          return [...old, timelineEntry];
+        }
       );
     });
 
     hubConnection.onclose((error) => {
       console.log('🔴 SignalR connection closed', error);
       setConnectionState('disconnected');
+      connectionRef.current = null;
+      isConnectingRef.current = false;
     });
 
     hubConnection.onreconnecting((error) => {
@@ -76,21 +93,40 @@ export const useIncidentSignalR = () => {
       setConnectionState('connected');
     });
 
-    // Start connection asynchronously outside the effect body
-    hubConnection.start()
-      .then(() => {
+    // Start connection with better error handling
+    const startConnection = async () => {
+      try {
+        setConnectionState('connecting');
+        
+        // Add a small delay before starting
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        await hubConnection.start();
         console.log('✅ SignalR connected successfully');
-        setConnection(hubConnection);
         setConnectionState('connected');
+        setConnection(hubConnection);
         connectionRef.current = hubConnection;
-      })
-      .catch((err: unknown) => {
+      } catch (err) {
         console.error('❌ SignalR Connection Error:', err);
         setConnectionState('disconnected');
-      });
+        connectionRef.current = null;
+        isConnectingRef.current = false;
+        
+        // Only retry if not already connected
+        if (hubConnection.state === 'Disconnected') {
+          setTimeout(startConnection, 3000);
+        }
+      }
+    };
+
+    startConnection();
 
     return () => {
-      hubConnection.stop();
+      if (connectionRef.current) {
+        connectionRef.current.stop();
+        connectionRef.current = null;
+      }
+      isConnectingRef.current = false;
     };
   }, [queryClient]);
 

@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAuth0 } from '@auth0/auth0-react';
 import { useIncidentSignalR } from './hooks/useIncidentSignalR';
-import { useAuth0, Auth0Provider } from '@auth0/auth0-react';
-import { authConfig } from './auth/auth-config';
 import type { Status, Incident, TimelineEntry } from './types';
 
 // ─── API ──────────────────────────────────────────────────────────────────────
@@ -314,7 +313,7 @@ function TimelinePanel({ incidentId }: { incidentId: string }) {
   return (
     <div className="py-1">
       {entries.slice().reverse().map((e, idx) => (
-        <div key={e.id} className="flex gap-3 mb-4">
+        <div key={`${e.id}-${idx}-${e.timestamp}`} className="flex gap-3 mb-4">
           <div className="flex flex-col items-center">
             <div className={`w-2.5 h-2.5 rounded-full shrink-0 mt-0.5 border-2 ${
               idx === 0 ? "bg-blue-600 border-blue-600" : "bg-gray-200 border-gray-400"
@@ -528,7 +527,7 @@ function Toast({ message, onDone }: { message: string; onDone: () => void }) {
   useEffect(() => {
     const t = setTimeout(onDone, 3500);
     return () => clearTimeout(t);
-  }, [onDone]); // Added onDone to dependency array
+  }, [onDone]);
   return (
     <div className="fixed bottom-6 right-6 z-2000 bg-gray-900 text-white px-4 py-3 rounded-lg shadow-2xl flex items-center gap-2.5 text-sm font-semibold max-w-sm">
       <span className="text-base">📡</span>
@@ -562,34 +561,9 @@ function Sidebar() {
   );
 }
 
-// ─── Authenticated App Component ────────────────────────────────────────────────
-function AuthenticatedApp() {
-  const { user, isAuthenticated, getAccessTokenSilently, logout } = useAuth0();
-  const [userRole, setUserRole] = useState<'viewer' | 'responder' | null>(null);
-  
-  useEffect(() => {
-    if (isAuthenticated && user) {
-      getAccessTokenSilently()
-        .then(token => {
-          try {
-            const decodedToken = JSON.parse(atob(token.split('.')[1]));
-            // Check for role in custom claim or app_metadata
-            const role = decodedToken['https://your-app.com/roles']?.[0] || 
-                        decodedToken['app_metadata']?.roles?.[0] || 
-                        'viewer';
-            setUserRole(role);
-          } catch (error) {
-            console.error('Failed to decode token:', error);
-            setUserRole('viewer');
-          }
-        })
-        .catch(error => {
-          console.error('Failed to get access token:', error);
-          setUserRole('viewer');
-        });
-    }
-  }, [isAuthenticated, user, getAccessTokenSilently]);
-  
+// ─── App ──────────────────────────────────────────────────────────────────────
+export default function App() {
+  const { user, isAuthenticated, isLoading, logout } = useAuth0();
   const queryClient = useQueryClient();
   const { connectionState } = useIncidentSignalR();
   const incidentApi = useIncidentApi();
@@ -600,30 +574,33 @@ function AuthenticatedApp() {
   const [newIds, setNewIds] = useState(new Set<string>());
   const [toasts, setToasts] = useState<{ id: number; msg: string }[]>([]);
 
+  // Get user info from Auth0
+  const userName = user?.name || "Unknown User";
+  const userRole = user?.['https://incidenthub.example.com/roles']?.[0] || "viewer";
+
   function addToast(msg: string) {
     const id = Date.now();
     setToasts(t => [...t, { id, msg }]);
   }
 
   // ── SignalR connection toast notifications ──
-// ── SignalR connection toast notifications ──
-useEffect(() => {
-  const timer = setTimeout(() => {
-    if (connectionState === 'connected') {
-      addToast("Live updates connected");
-    } else if (connectionState === 'disconnected') {
-      addToast("Live updates disconnected - using polling");
-    }
-  }, 0);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (connectionState === 'connected') {
+        addToast("Live updates connected");
+      } else if (connectionState === 'disconnected') {
+        addToast("Live updates disconnected - using polling");
+      }
+    }, 0);
 
-  return () => clearTimeout(timer);
-}, [connectionState]);
+    return () => clearTimeout(timer);
+  }, [connectionState]);
 
   // ── Fetch all incidents ──
-  const { data: incidents = [], isLoading, isError } = useQuery({
-    queryKey: ["incidents"],
-    queryFn: incidentApi.getAll
-  });
+const { data: incidents = [], isLoading: incidentsLoading, isError } = useQuery({
+  queryKey: ["incidents"],
+  queryFn: incidentApi.getAll
+});
 
   // ── Create incident ──
   const createMutation = useMutation({
@@ -677,12 +654,23 @@ useEffect(() => {
     i.resolvedAt && new Date(i.resolvedAt).toDateString() === todayString
   ).length;
 
+/* if (isLoading) { return <div>Loading authentication...</div>; }
+
+   if (!isAuthenticated) {
+    return (
+      <div style={{ padding: '20px', textAlign: 'center' }}>
+        <h1>IncidentHub</h1>
+        <p>Please log in to continue</p>
+      </div>
+    );
+  } */
+
   return (
     <div className="font-sans bg-gray-100 min-h-screen flex flex-col">
       <Topbar 
-        user={user?.name || 'Unknown'} 
-        role={userRole || 'viewer'} 
-        onNew={userRole === 'responder' ? () => setShowModal(true) : undefined}
+        user={userName} 
+        role={userRole} 
+        onNew={() => setShowModal(true)}
         onLogout={() => logout({ logoutParams: { returnTo: window.location.origin } })}
       />
       <ConnectionBar status={connectionState} />
@@ -700,7 +688,7 @@ useEffect(() => {
 
           <FiltersBar filter={filter} setFilter={setFilter} search={search} setSearch={setSearch} />
 
-          {isLoading && (
+          {incidentsLoading && (
             <div className="flex-1 flex items-center justify-center text-gray-400 text-sm">
               Loading incidents…
             </div>
@@ -727,7 +715,7 @@ useEffect(() => {
                   onClose={() => setSelected(null)}
                   onStatusChange={(id, status) => statusMutation.mutate({ id, status })}
                   onResolve={id => resolveMutation.mutate(id)}
-                  role={userRole || 'viewer'}
+                  role={userRole}
                 />
               )}
             </div>
@@ -739,7 +727,7 @@ useEffect(() => {
         </main>
       </div>
 
-      {showModal && userRole === 'responder' && (
+      {showModal && (
         <NewIncidentModal
           onClose={() => setShowModal(false)}
           onSubmit={form => createMutation.mutate(form)}
@@ -751,83 +739,6 @@ useEffect(() => {
   );
 }
 
-// ─── Login Screen ───────────────────────────────────────────────────────────────
-function LoginScreen() {
-  const { loginWithRedirect } = useAuth0();
-  
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <div className="mb-8">
-          <div className="w-16 h-16 bg-blue-600 rounded-lg mx-auto mb-4 flex items-center justify-center">
-            <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-              <rect width="32" height="32" rx="8" fill="white" fillOpacity="0.2" />
-              <circle cx="16" cy="16" r="8" fill="none" stroke="white" strokeWidth="2" />
-              <circle cx="16" cy="16" r="2" fill="white" />
-            </svg>
-          </div>
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">IncidentHub</h1>
-          <p className="text-gray-600">Real-time incident management system</p>
-        </div>
-        
-        <div className="bg-white rounded-lg shadow-lg p-8 max-w-md">
-          <h2 className="text-xl font-semibold text-gray-800 mb-4">Sign In</h2>
-          <p className="text-gray-600 mb-6">Please sign in to access the incident management system</p>
-          
-          <button
-            onClick={() => loginWithRedirect()}
-            className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors"
-          >
-            Sign In with Auth0
-          </button>
-          
-          <div className="mt-6 text-sm text-gray-500">
-            <p>Sign in as:</p>
-            <div className="mt-2 space-y-1">
-              <div><strong>Responder:</strong> Can create and resolve incidents</div>
-              <div><strong>Viewer:</strong> Can only view incidents</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── App Component ───────────────────────────────────────────────────────────────
-export default function App() {
-  const { isAuthenticated, isLoading } = useAuth0();
-  
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-  
-  if (!isAuthenticated) {
-    return <LoginScreen />;
-  }
-  
-  return <AuthenticatedApp />;
-}
-
-// ─── App Wrapper with Auth0 Provider ───────────────────────────────────────────────
 export function AppWithAuth() {
-  return (
-    <Auth0Provider
-      domain={authConfig.domain}
-      clientId={authConfig.clientId}
-      authorizationParams={{
-        redirect_uri: window.location.origin,
-        audience: authConfig.audience
-      }}
-    >
-      <App />
-    </Auth0Provider>
-  );
+  return <App />;
 }
