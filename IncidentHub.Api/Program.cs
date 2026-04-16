@@ -1,5 +1,5 @@
 using FluentValidation;
-using IncidentHub.Api.Common;
+using IncidentHub.Api.Constants;
 using IncidentHub.Api.Features.Incidents.Commands.RaiseIncident;
 using IncidentHub.Api.Features.Incidents.Commands.ResolveIncident;
 using IncidentHub.Api.Features.Incidents.Commands.UpdateIncidentStatus;
@@ -11,11 +11,10 @@ using IncidentHub.Api.Infrastructure.Data;
 using IncidentHub.Api.Infrastructure.Security;
 using IncidentHub.Api.Middleware;
 using MediatR;
-using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 using Serilog;
-using Serilog.Events;
+using static IncidentHub.Api.Constants.AuthPolicies;
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
@@ -86,10 +85,12 @@ try
 
     builder.Services.AddAuthorization(options =>
     {
-        options.AddPolicy(ClaimConstants.RoleTypeResponder, policy =>
-            policy.RequireClaim(ClaimConstants.RolesUri, ClaimConstants.RoleTypeResponder));
-        options.AddPolicy(ClaimConstants.RoleTypeViewer, policy =>
-            policy.RequireClaim(ClaimConstants.RolesUri, ClaimConstants.RoleTypeViewer, ClaimConstants.RoleTypeResponder));
+        // API validates the "permissions" claim found in the Access Token
+        options.AddPolicy(Policies.CanReadIncidents, policy =>
+            policy.RequireClaim("permissions", Permissions.ReadIncidents));
+
+        options.AddPolicy(Policies.CanManageIncidents, policy =>
+            policy.RequireClaim("permissions", Permissions.ManageIncidents));
     });
 
     // CORS is just implemented for local dev.
@@ -150,18 +151,18 @@ try
     // ── Queries ───────────────────────────────────────────────────────────
     app.MapGet("/api/incidents", async (IMediator m)
         => await m.Send(new GetIncidentsQuery()))
-        .RequireAuthorization();
+        .RequireAuthorization(Policies.CanReadIncidents);
 
     app.MapGet("/api/incidents/{id:guid}", async (Guid id, IMediator m) =>
     {
         var result = await m.Send(new GetIncidentByIdQuery(id));
         return result is null ? Results.NotFound() : Results.Ok(result);
     })
-        .RequireAuthorization();
+        .RequireAuthorization(Policies.CanReadIncidents);
 
     app.MapGet("/api/incidents/{id:guid}/timeline", async (Guid id, IMediator m)
         => await m.Send(new GetIncidentTimelineQuery(id)))
-        .RequireAuthorization();
+        .RequireAuthorization(Policies.CanReadIncidents);
 
     // ── Commands ──────────────────────────────────────────────────────────
     app.MapPost("/api/incidents", async (RaiseIncidentCommand cmd, IMediator m, HttpContext http) =>
@@ -170,7 +171,7 @@ try
         var result = await m.Send(cmd with { AssignedTo = sub });
         return Results.Created($"/api/incidents/{result.Id}", result);
     })
-        .RequireAuthorization(ClaimConstants.RoleTypeResponder);
+        .RequireAuthorization(Policies.CanManageIncidents);
 
     app.MapPatch("/api/incidents/{id:guid}/status", async (
         Guid id, UpdateIncidentStatusCommand cmd, IMediator m, HttpContext http) =>
@@ -179,7 +180,7 @@ try
         var result = await m.Send(cmd with { Id = id, ChangedBy = sub });
         return Results.Ok(result);
     })
-        .RequireAuthorization(ClaimConstants.RoleTypeResponder);
+        .RequireAuthorization(Policies.CanManageIncidents);
 
     app.MapPost("/api/incidents/{id:guid}/resolve", async (
         Guid id, ResolveIncidentCommand cmd, IMediator m, HttpContext http) =>
@@ -188,7 +189,7 @@ try
         var result = await m.Send(cmd with { Id = id, ChangedBy = sub });
         return Results.Ok(result);
     })
-        .RequireAuthorization(ClaimConstants.RoleTypeResponder);
+        .RequireAuthorization(Policies.CanManageIncidents);
 
     app.Run();
 }

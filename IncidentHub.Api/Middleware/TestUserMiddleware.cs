@@ -1,33 +1,57 @@
 ﻿using System.Security.Claims;
-using IncidentHub.Api.Common;
+using IncidentHub.Api.Constants;
+using static IncidentHub.Api.Constants.AuthPolicies;
 
 namespace IncidentHub.Api.Middleware;
 public class TestUserMiddleware
 {
     private readonly RequestDelegate _next;
+    private readonly IConfiguration _config;
 
-    public TestUserMiddleware(RequestDelegate next) => _next = next;
+    public TestUserMiddleware(RequestDelegate next, IConfiguration config)
+    {
+        _next = next;
+        _config = config;
+    }
 
     public async Task InvokeAsync(HttpContext context)
     {
-        // X-Role header lets you test both roles in Scalar:
-        //   X-Role: responder   → full access
-        //   X-Role: viewer  → read only
-        //   (omit)                 → defaults to responder for convenience
-        var role = context.Request.Headers["X-Role"].ToString();
-        if (string.IsNullOrEmpty(role))
-            role = ClaimConstants.RoleTypeResponder;
+        // Get permission set from header or use default
+        var permissionSet = context.Request.Headers["X-Permissions"].ToString();
+        if (string.IsNullOrEmpty(permissionSet))
+            permissionSet = _config["TestUser:DefaultPermissionSet"] ?? "admin";
 
-        var claims = new[]
+        var permissions = GetPermissionsForSet(permissionSet);
+
+        var claims = new List<Claim>
         {
-            // Must match the namespace used in Program.cs authorization policies
-            new Claim(ClaimConstants.RolesUri, role),
-            new Claim(ClaimTypes.NameIdentifier, "dev-user")
+            new(ClaimTypes.NameIdentifier, "dev-user")
         };
 
-        var identity = new ClaimsIdentity(claims, "test-user");
+        // Add each permission as an individual claim
+        foreach (var permission in permissions)
+        {
+            claims.Add(new Claim(AuthClaimTypes.Permissions, permission));
+        }
+        var identity = new ClaimsIdentity(claims, "TestUser");
         context.User = new ClaimsPrincipal(identity);
 
         await _next(context);
+    }
+    private static string[] GetPermissionsForSet(string permissionSet)
+    {
+        return permissionSet.ToLowerInvariant() switch
+        {
+            "responder" =>
+            [
+                Permissions.ManageIncidents,
+                Permissions.ReadIncidents
+            ],
+            "viewer" =>
+            [
+                Permissions.ReadIncidents
+            ],
+            _ => []
+        };
     }
 }

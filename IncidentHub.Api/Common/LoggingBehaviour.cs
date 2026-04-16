@@ -1,7 +1,8 @@
+using IncidentHub.Api.Constants;
 using MediatR;
 using Serilog.Context;
 
-namespace IncidentHub.Api.Common;
+namespace IncidentHub.Api.Constants;
 
 public class LoggingBehaviour<TRequest, TResponse>(
     ILogger<LoggingBehaviour<TRequest, TResponse>> logger,
@@ -21,15 +22,15 @@ public class LoggingBehaviour<TRequest, TResponse>(
         {
             var user = httpContextAccessor.HttpContext?.User;
             var userId = user?.FindFirst("sub")?.Value ?? "anonymous";
-            var userRole = user?.FindFirst(ClaimConstants.RolesUri)?.Value ?? "none";
+            var userPermissions = user?.FindAll(AuthClaimTypes.Permissions)?.Select(c => c.Value).ToArray() ?? Array.Empty<string>();
 
             using (LogContext.PushProperty("UserId", userId))
-            using (LogContext.PushProperty("UserRole", userRole))
+            using (LogContext.PushProperty("UserPermission", string.Join(",", userPermissions)))
             using (LogContext.PushProperty("RequestName", requestName))
             {
                 logger.LogInformation(
-                    "Processing {RequestName} for user {UserId} [{UserRole}]",
-                    requestName, userId, userRole);
+                    "Processing {RequestName} for user {UserId} [{UserPermissions}]",
+                    requestName, userId, string.Join(",", userPermissions));
 
                 var stopwatch = System.Diagnostics.Stopwatch.StartNew();
                 try
