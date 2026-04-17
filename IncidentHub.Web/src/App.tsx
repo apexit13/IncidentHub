@@ -215,7 +215,7 @@ function FiltersBar({ filter, setFilter, search, setSearch }: {
         {search && (
           <button
             onClick={handleClearSearch}
-            className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm font-bold"
+            className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm font-bold cursor-pointer"
             aria-label="Clear search"
           >
             ×
@@ -733,7 +733,7 @@ export default function App() {
           )}
 
           <div className="text-xs text-gray-400 text-center">
-            IncidentHub · .NET 10 / React 19 / Azure SignalR / Auth0 · Portfolio Demo
+            IncidentHub · .NET 10 / React 19 / SignalR / Auth0
           </div>
         </main>
       </div>
