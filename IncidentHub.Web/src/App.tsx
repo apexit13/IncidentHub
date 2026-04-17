@@ -171,7 +171,6 @@ function Topbar({ user, onNew, onLogout }: {
         </div>
         <div>
           <div className="text-xs font-bold text-white leading-tight">{user}</div>
-          <div className="text-[10px] text-white/60 uppercase tracking-widest">Incident Manager</div>
         </div>
         <button 
           onClick={onLogout}
