@@ -1,4 +1,4 @@
-import type { Incident, TimelineEntry } from '../types';
+import type { Incident, TimelineEntry } from '../types/incidents';
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? "https://localhost:7125";
 

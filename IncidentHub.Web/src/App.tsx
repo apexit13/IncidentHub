@@ -1,26 +1,25 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth0 } from '@auth0/auth0-react';
+import { usePermissions } from './hooks/usePermissions';
 import { useIncidentSignalR } from './hooks/useIncidentSignalR';
-import type { Status, Incident, TimelineEntry } from './types';
+import type { Status, Incident, TimelineEntry } from './types/incidents';
 
 // ─── API ──────────────────────────────────────────────────────────────────────
 const BASE_URL = import.meta.env.VITE_API_URL ?? "https://localhost:7125";
 
 // Create a hook for the API to use Auth0
 function useIncidentApi() {
-  const { getAccessTokenSilently, isAuthenticated } = useAuth0();
+  const { getAccessTokenSilently } = useAuth0();
   
   const apiRequest = async <T,>(path: string, options?: RequestInit): Promise<T> => {
     const headers: HeadersInit = { "Content-Type": "application/json" };
     
-    if (isAuthenticated) {
-      try {
-        const token = await getAccessTokenSilently();
-        headers["Authorization"] = `Bearer ${token}`;
-      } catch (error) {
-        console.error('Failed to get access token:', error);
-      }
+    try {
+      const token = await getAccessTokenSilently();
+      headers["Authorization"] = `Bearer ${token}`;
+    } catch (error) {
+      console.error('Failed to get access token:', error);
     }
     
     const res = await fetch(`${BASE_URL}${path}`, {
@@ -133,12 +132,13 @@ function ConnectionBar({ status }: { status: string }) {
 }
 
 // ─── Topbar ───────────────────────────────────────────────────────────────────
-function Topbar({ user, onNew, role, onLogout }: { 
+function Topbar({ user, onNew, onLogout }: { 
   user: string; 
   onNew?: () => void; 
-  role: string;
   onLogout: () => void;
 }) {
+  const { canManageIncidents } = usePermissions();
+  
   return (
     <header className="h-14 flex items-center px-6 gap-4 sticky top-0 z-50" style={{ background: "#1f4479" }}>
       <div className="flex items-center gap-2.5 flex-1">
@@ -156,10 +156,10 @@ function Topbar({ user, onNew, role, onLogout }: {
         </span>
       </div>
 
-      {role === "incidenthub.responder" && onNew && (
+      {canManageIncidents && onNew && (
         <button
           onClick={onNew}
-          className="flex items-center gap-1.5 bg-red-500 hover:bg-red-600 text-white text-sm font-bold px-4 py-1.5 rounded transition-colors"
+          className="flex items-center gap-1.5 bg-red-500 hover:bg-red-600 text-white text-sm font-bold px-4 py-1.5 rounded transition-colors cursor-pointer"
         >
           <span className="text-base leading-none">+</span> New Incident
         </button>
@@ -171,11 +171,11 @@ function Topbar({ user, onNew, role, onLogout }: {
         </div>
         <div>
           <div className="text-xs font-bold text-white leading-tight">{user}</div>
-          <div className="text-[10px] text-white/60 uppercase tracking-widest">{role}</div>
+          <div className="text-[10px] text-white/60 uppercase tracking-widest">Incident Manager</div>
         </div>
         <button 
           onClick={onLogout}
-          className="text-white/60 hover:text-white text-xs ml-2"
+          className="text-white/60 hover:text-white text-xs ml-2 cursor-pointer"
         >
           Sign Out
         </button>
@@ -201,28 +201,41 @@ function FiltersBar({ filter, setFilter, search, setSearch }: {
   search: string; setSearch: (s: string) => void;
 }) {
   const statuses = ["All", "New", "Investigating", "Identified", "Monitoring", "Resolved"];
+  const handleClearSearch = () => setSearch("");
+  
   return (
     <div className="flex gap-2.5 items-center flex-wrap">
-      <input
-        value={search}
-        onChange={e => setSearch(e.target.value)}
-        placeholder="Search incidents…"
-        className="border border-gray-300 rounded px-3 py-1.5 text-sm outline-none flex-1 min-w-30 focus:border-blue-500 transition-colors"
-      />
-      <div className="flex gap-1 flex-wrap">
-        {statuses.map(s => (
+      <div className="relative flex-1 min-w-30">
+        <input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Search incidents…"
+          className="w-full border border-gray-300 rounded px-3 py-1.5 pr-8 text-sm outline-none focus:border-blue-500 transition-colors"
+        />
+        {search && (
           <button
-            key={s}
-            onClick={() => setFilter(s)}
-            className={`px-3 py-1.5 rounded text-xs font-semibold border transition-colors ${
-              filter === s
-                ? "border-blue-700 bg-blue-700 text-white"
-                : "border-gray-300 bg-white text-gray-600 hover:bg-gray-50"
-            }`}
+            onClick={handleClearSearch}
+            className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm font-bold"
+            aria-label="Clear search"
           >
-            {s}
+            ×
           </button>
-        ))}
+        )}
+      </div>
+      <div className="flex gap-1 flex-wrap">
+      {statuses.map(s => (
+        <button
+          key={s}
+          onClick={() => setFilter(s)}
+          className={`px-3 py-1.5 rounded text-xs font-semibold border transition-colors cursor-pointer ${
+            filter === s
+              ? "border-blue-700 bg-blue-700 text-white"
+              : "border-gray-300 bg-white text-gray-600 hover:bg-gray-50"
+          }`}
+        >
+          {s}
+        </button>
+      ))}
       </div>
     </div>
   );
@@ -338,12 +351,12 @@ function TimelinePanel({ incidentId }: { incidentId: string }) {
 }
 
 // ─── IncidentDetailPanel ──────────────────────────────────────────────────────
-function IncidentDetailPanel({ incident, onClose, onStatusChange, onResolve, role }: {
+function IncidentDetailPanel({ incident, onClose, onStatusChange, onResolve }: {
   incident: Incident; onClose: () => void;
   onStatusChange: (id: string, status: string) => void;
   onResolve: (id: string) => void;
-  role: string;
 }) {
+  const { canManageIncidents } = usePermissions();
   const statuses: Status[] = ["New", "Investigating", "Identified", "Monitoring"];
 
   return (
@@ -356,7 +369,7 @@ function IncidentDetailPanel({ incident, onClose, onStatusChange, onResolve, rol
           </div>
           <div className="text-sm font-bold text-gray-800 leading-snug">{incident.title}</div>
         </div>
-        <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none p-0.5 transition-colors">×</button>
+        <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none p-0.5 transition-colors cursor-pointer">×</button>
       </div>
 
       <div className="flex-1 overflow-auto px-5 py-4 flex flex-col gap-5">
@@ -381,32 +394,32 @@ function IncidentDetailPanel({ incident, onClose, onStatusChange, onResolve, rol
           ))}
         </div>
 
-        {role === "incidenthub.responder" && incident.status !== "Resolved" && (
-          <div>
-            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Update Status</div>
-            <div className="flex flex-wrap gap-1.5">
-              {statuses.map(s => (
-                <button
-                  key={s}
-                  onClick={() => onStatusChange(incident.id, s)}
-                  className={`px-2.5 py-1 rounded text-xs font-semibold border transition-colors ${
-                    s === incident.status
-                      ? "border-blue-700 bg-blue-700 text-white cursor-default"
-                      : "border-gray-300 bg-white text-gray-600 hover:bg-gray-50"
-                  }`}
-                >
-                  {s}
-                </button>
-              ))}
-              <button
-                onClick={() => onResolve(incident.id)}
-                className="px-2.5 py-1 rounded text-xs font-semibold border border-green-500 bg-white text-green-600 hover:bg-green-50 transition-colors"
-              >
-                Resolve
-              </button>
-            </div>
-          </div>
-        )}
+{canManageIncidents && incident.status !== "Resolved" && (
+  <div>
+    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Update Status</div>
+    <div className="flex flex-wrap gap-1.5">
+      {statuses.map(s => (
+        <button
+          key={s}
+          onClick={() => onStatusChange(incident.id, s)}
+          className={`px-2.5 py-1 rounded text-xs font-semibold border transition-colors cursor-pointer ${
+            s === incident.status
+              ? "border-blue-700 bg-blue-700 text-white cursor-default"
+              : "border-gray-300 bg-white text-gray-600 hover:bg-gray-50"
+          }`}
+        >
+          {s}
+        </button>
+      ))}
+      <button
+        onClick={() => onResolve(incident.id)}
+        className="px-2.5 py-1 rounded text-xs font-semibold border border-green-500 bg-white text-green-600 hover:bg-green-50 transition-colors cursor-pointer"
+      >
+        Resolve
+      </button>
+    </div>
+  </div>
+)}
 
         <div>
           <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Timeline</div>
@@ -457,7 +470,7 @@ function NewIncidentModal({ onClose, onSubmit, isSubmitting }: {
             <div className="text-base font-extrabold text-gray-800">Raise Incident</div>
             <div className="text-xs text-gray-500 mt-0.5">Saved to database and broadcast via SignalR</div>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl transition-colors">×</button>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl transition-colors cursor-pointer">×</button>
         </div>
 
         <div className="px-6 py-5 flex flex-col gap-4">
@@ -492,7 +505,7 @@ function NewIncidentModal({ onClose, onSubmit, isSubmitting }: {
                 <button
                   key={s}
                   onClick={() => setForm(f => ({ ...f, severity: s }))}
-                  className={`flex-1 py-2 rounded border-2 text-xs font-bold transition-colors ${
+                  className={`flex-1 py-2 rounded border-2 text-xs font-bold transition-colors cursor-pointer ${
                     form.severity === s ? SEV_BTN[s] : "border-gray-200 bg-white text-gray-500 hover:bg-gray-50"
                   }`}
                 >
@@ -504,13 +517,13 @@ function NewIncidentModal({ onClose, onSubmit, isSubmitting }: {
         </div>
 
         <div className="px-6 pb-5 flex gap-2.5 justify-end">
-          <button onClick={onClose} className="px-5 py-2 rounded border border-gray-300 bg-white text-gray-600 font-semibold text-sm hover:bg-gray-50 transition-colors">
+          <button onClick={onClose} className="px-5 py-2 rounded border border-gray-300 bg-white text-gray-600 font-semibold text-sm hover:bg-gray-50 transition-colors cursor-pointer">
             Cancel
           </button>
           <button
             onClick={handleSubmit}
             disabled={isSubmitting}
-            className={`px-6 py-2 rounded text-white font-bold text-sm transition-colors ${
+            className={`px-6 py-2 rounded text-white font-bold text-sm transition-colors cursor-pointer ${
               isSubmitting ? "bg-gray-400 cursor-default" : "bg-blue-700 hover:bg-blue-800"
             }`}
           >
@@ -563,7 +576,8 @@ function Sidebar() {
 
 // ─── App ──────────────────────────────────────────────────────────────────────
 export default function App() {
-  const { user, isLoading, logout } = useAuth0();
+  const { user, logout } = useAuth0();
+  const { canReadIncidents, canManageIncidents } = usePermissions();
   const queryClient = useQueryClient();
   const { connectionState } = useIncidentSignalR();
   const incidentApi = useIncidentApi();
@@ -576,7 +590,6 @@ export default function App() {
 
   // Get user info from Auth0
   const userName = user?.name || "Unknown User";
-  const userRole = user?.['https://incidenthub.example.com/roles']?.[0] || "incidenthub.viewer";
 
   function addToast(msg: string) {
     const id = Date.now();
@@ -597,10 +610,11 @@ export default function App() {
   }, [connectionState]);
 
   // ── Fetch all incidents ──
-const { data: incidents = [], isLoading: incidentsLoading, isError } = useQuery({
-  queryKey: ["incidents"],
-  queryFn: incidentApi.getAll
-});
+  const { data: incidents = [], isLoading: incidentsLoading, isError } = useQuery({
+    queryKey: ["incidents"],
+    queryFn: incidentApi.getAll,
+    enabled: canReadIncidents
+  });
 
   // ── Create incident ──
   const createMutation = useMutation({
@@ -654,23 +668,11 @@ const { data: incidents = [], isLoading: incidentsLoading, isError } = useQuery(
     i.resolvedAt && new Date(i.resolvedAt).toDateString() === todayString
   ).length;
 
-/* if (isLoading) { return <div>Loading authentication...</div>; }
-
-   if (!isAuthenticated) {
-    return (
-      <div style={{ padding: '20px', textAlign: 'center' }}>
-        <h1>IncidentHub</h1>
-        <p>Please log in to continue</p>
-      </div>
-    );
-  } */
-
   return (
     <div className="font-sans bg-gray-100 min-h-screen flex flex-col">
       <Topbar 
         user={userName} 
-        role={userRole} 
-        onNew={userRole === "incidenthub.responder" ? () => setShowModal(true) : undefined}
+        onNew={canManageIncidents ? () => setShowModal(true) : undefined}
         onLogout={() => logout({ logoutParams: { returnTo: window.location.origin } })}
       />
       <ConnectionBar status={connectionState} />
@@ -679,27 +681,37 @@ const { data: incidents = [], isLoading: incidentsLoading, isError } = useQuery(
         <Sidebar />
 
         <main className="flex-1 overflow-auto p-6 flex flex-col gap-5">
-          <div className="flex gap-3 flex-wrap">
-            <StatCard label="Active Incidents" value={activeCount} borderColor="#FF5630" sub="Open right now" />
-            <StatCard label="Critical" value={critCount} borderColor="#DE350B" sub="Needs immediate attention" />
-            <StatCard label="Resolved Today" value={resolvedToday} borderColor="#36B37E" sub="In last 24 hours" />
-            <StatCard label="Total" value={incidents.length} borderColor="#1f4479" sub="All time" />
-          </div>
+          {canReadIncidents && (
+            <div className="flex gap-3 flex-wrap">
+              <StatCard label="Active Incidents" value={activeCount} borderColor="#FF5630" sub="Open right now" />
+              <StatCard label="Critical" value={critCount} borderColor="#DE350B" sub="Needs immediate attention" />
+              <StatCard label="Resolved Today" value={resolvedToday} borderColor="#36B37E" sub="In last 24 hours" />
+              <StatCard label="Total" value={incidents.length} borderColor="#1f4479" sub="All time" />
+            </div>
+          )}
 
-          <FiltersBar filter={filter} setFilter={setFilter} search={search} setSearch={setSearch} />
+          {canReadIncidents && (
+            <FiltersBar filter={filter} setFilter={setFilter} search={search} setSearch={setSearch} />
+          )}
 
-          {incidentsLoading && (
+          {!canReadIncidents && (
+            <div className="flex-1 flex items-center justify-center text-gray-400 text-sm">
+              You don't have permission to view incidents. Please contact your administrator.
+            </div>
+          )}
+
+          {incidentsLoading && canReadIncidents && (
             <div className="flex-1 flex items-center justify-center text-gray-400 text-sm">
               Loading incidents…
             </div>
           )}
-          {isError && (
+          {isError && canReadIncidents && (
             <div className="flex-1 flex items-center justify-center text-red-500 text-sm">
               Could not reach the API. Is your .NET backend running on {BASE_URL}?
             </div>
           )}
 
-          {!isLoading && !isError && (
+          {!incidentsLoading && !isError && canReadIncidents && (
             <div className="flex flex-1 bg-white rounded-lg overflow-hidden shadow-sm min-h-100">
               <div className="flex-1 overflow-auto">
                 <IncidentTable
@@ -715,7 +727,6 @@ const { data: incidents = [], isLoading: incidentsLoading, isError } = useQuery(
                   onClose={() => setSelected(null)}
                   onStatusChange={(id, status) => statusMutation.mutate({ id, status })}
                   onResolve={id => resolveMutation.mutate(id)}
-                  role={userRole}
                 />
               )}
             </div>

@@ -11,12 +11,14 @@ const queryClient = new QueryClient();
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <QueryClientProvider client={queryClient}>
     <Auth0Provider
-      domain={authConfig.domain}
-      clientId={authConfig.clientId}
-      authorizationParams={{
-        redirect_uri: window.location.origin
-      }}
-      cacheLocation="localstorage"
+        domain={authConfig.domain}
+        clientId={authConfig.clientId}
+        authorizationParams={{
+          redirect_uri: window.location.origin,
+          audience: authConfig.audience,
+          scope: authConfig.scope
+        }}
+        cacheLocation="localstorage"
     >
       <AuthWrapper>
         <App />

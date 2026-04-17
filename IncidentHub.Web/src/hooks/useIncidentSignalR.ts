@@ -1,7 +1,7 @@
 import { HubConnection, HubConnectionBuilder, LogLevel } from '@microsoft/signalr';
 import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import type { Incident, TimelineEntry } from '../types';
+import type { Incident, TimelineEntry } from '../types/incidents';
 
 export const useIncidentSignalR = () => {
   const [connection, setConnection] = useState<HubConnection | null>(null);
