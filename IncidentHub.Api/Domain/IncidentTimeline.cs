@@ -16,11 +16,5 @@ public class IncidentTimeline
 
     public DateTimeOffset Timestamp { get; set; }
 
-    /// <summary>
-    /// Captures the status the incident moved TO with this timeline entry.
-    /// Null for the initial "Incident raised" entry.
-    /// Allows the frontend to render status-change badges in the timeline
-    /// without recomputing history from a diff.
-    /// </summary>
     public IncidentStatus? NewStatus { get; set; }
 }

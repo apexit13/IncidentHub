@@ -42,6 +42,12 @@ public class TestUserMiddleware
     {
         return permissionSet.ToLowerInvariant() switch
         {
+            "admin" =>
+            [
+                Permissions.ManageIncidents,
+                Permissions.ReadIncidents,
+                Permissions.ReadUsers
+            ],
             "responder" =>
             [
                 Permissions.ManageIncidents,

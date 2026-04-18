@@ -1,11 +1,13 @@
 using FluentValidation;
 using IncidentHub.Api.Constants;
+using IncidentHub.Api.Features.Incidents.Commands.AssignIncident;
 using IncidentHub.Api.Features.Incidents.Commands.RaiseIncident;
 using IncidentHub.Api.Features.Incidents.Commands.ResolveIncident;
 using IncidentHub.Api.Features.Incidents.Commands.UpdateIncidentStatus;
 using IncidentHub.Api.Features.Incidents.Queries.GetIncidentById;
 using IncidentHub.Api.Features.Incidents.Queries.GetIncidents;
 using IncidentHub.Api.Features.Timeline.Queries.GetIncidentTimeline;
+using IncidentHub.Api.Features.Users.Queries.GetUsers;
 using IncidentHub.Api.Hubs;
 using IncidentHub.Api.Infrastructure.Data;
 using IncidentHub.Api.Infrastructure.Security;
@@ -91,6 +93,12 @@ try
 
         options.AddPolicy(Policies.CanManageIncidents, policy =>
             policy.RequireClaim("permissions", Permissions.ManageIncidents));
+
+        options.AddPolicy(Policies.CanAssignIncidents, policy =>
+            policy.RequireClaim("permissions", Permissions.AssignIncidents));
+
+        options.AddPolicy(Policies.CanReadUsers, policy =>
+            policy.RequireClaim("permissions", Permissions.ReadUsers));
     });
 
     // CORS is just implemented for local dev.
@@ -164,6 +172,15 @@ try
         => await m.Send(new GetIncidentTimelineQuery(id)))
         .RequireAuthorization(Policies.CanReadIncidents);
 
+    app.MapGet("/api/users/by-role/{role}", async (
+        string role,
+        IMediator m) =>
+    {
+        var result = await m.Send(new GetUsersForRoleQuery(role));
+        return Results.Ok(result);
+    })
+        .RequireAuthorization(Policies.CanReadUsers);
+
     // ── Commands ──────────────────────────────────────────────────────────
     app.MapPost("/api/incidents", async (RaiseIncidentCommand cmd, IMediator m, HttpContext http) =>
     {
@@ -190,6 +207,15 @@ try
         return Results.Ok(result);
     })
         .RequireAuthorization(Policies.CanManageIncidents);
+
+    app.MapPatch("/api/incidents/{id:guid}/assignment", async (
+    Guid id, AssignIncidentCommand cmd, IMediator m, HttpContext http) =>
+    {
+        var sub = http.User.FindFirst("sub")?.Value;
+        var result = await m.Send(cmd with { Id = id.ToString(), ChangedBy = sub });
+        return Results.Ok(result);
+    })
+    .RequireAuthorization(Policies.CanAssignIncidents);
 
     app.Run();
 }

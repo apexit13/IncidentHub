@@ -7,6 +7,8 @@
         {
             public const string ReadIncidents = "read:incidents";
             public const string ManageIncidents = "manage:incidents";
+            public const string AssignIncidents = "assign:incidents";
+            public const string ReadUsers = "read:users";
         }
 
         // The "Names" used in .RequireAuthorization() and <AuthorizeView>
@@ -14,6 +16,8 @@
         {
             public const string CanReadIncidents = "CanReadIncidents";
             public const string CanManageIncidents = "CanManageIncidents";
+            public const string CanAssignIncidents = "CanAssignIncidents";
+            public const string CanReadUsers = "CanReadUsers";
         }
     }
 }
