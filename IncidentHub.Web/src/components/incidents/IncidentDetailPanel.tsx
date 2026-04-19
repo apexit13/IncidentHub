@@ -24,7 +24,7 @@ export function IncidentDetailPanel({ incident, onClose, onStatusChange, onResol
             <SeverityBadge severity={incident.severity} />
             <StatusBadge status={incident.status} />
           </div>
-          <div className="text-sm font-bold text-gray-800 leading-snug">{incident.title}</div>
+          <div className="text-sm font-bold text-gray-800 leading-snug truncate">{incident.title}</div>
         </div>
         <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none p-0.5 transition-colors cursor-pointer">×</button>
       </div>
@@ -44,9 +44,9 @@ export function IncidentDetailPanel({ incident, onClose, onStatusChange, onResol
             ["Resolved", incident.resolvedAt ? timeAgo(incident.resolvedAt) : "—"],
             ["ID", incident.id.slice(0, 8) + "…"],
           ].map(([k, v]) => (
-            <div key={k}>
+            <div key={k} className="wrap-break-word">
               <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">{k}</div>
-              <div className="text-sm font-medium text-gray-800">{v}</div>
+              <div className="text-sm font-medium text-gray-800 break-all">{v}</div>
             </div>
           ))}
         </div>
