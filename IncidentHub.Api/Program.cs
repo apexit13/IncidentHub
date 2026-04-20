@@ -7,7 +7,8 @@ using IncidentHub.Api.Features.Incidents.Commands.UpdateIncidentStatus;
 using IncidentHub.Api.Features.Incidents.Queries.GetIncidentById;
 using IncidentHub.Api.Features.Incidents.Queries.GetIncidents;
 using IncidentHub.Api.Features.Timeline.Queries.GetIncidentTimeline;
-using IncidentHub.Api.Features.Users.Queries.GetUsers;
+using IncidentHub.Api.Features.Users.Queries.GetUserById;
+using IncidentHub.Api.Features.Users.Queries.GetUsersByRole;
 using IncidentHub.Api.Hubs;
 using IncidentHub.Api.Infrastructure.Data;
 using IncidentHub.Api.Infrastructure.Security;
@@ -172,11 +173,20 @@ try
         => await m.Send(new GetIncidentTimelineQuery(id)))
         .RequireAuthorization(Policies.CanReadIncidents);
 
-    app.MapGet("/api/users/by-role/{role}", async (
-        string role,
+    app.MapGet("/api/users/{id}", async (
+        string id,
         IMediator m) =>
     {
-        var result = await m.Send(new GetUsersForRoleQuery(role));
+        var result = await m.Send(new GetUserByIdQuery(id));
+        return Results.Ok(result);
+    })
+        .RequireAuthorization(Policies.CanReadUsers);
+
+    app.MapGet("/api/users/by-role/{role}", async (
+    string role,
+    IMediator m) =>
+    {
+        var result = await m.Send(new GetUsersByRoleQuery(role));
         return Results.Ok(result);
     })
         .RequireAuthorization(Policies.CanReadUsers);

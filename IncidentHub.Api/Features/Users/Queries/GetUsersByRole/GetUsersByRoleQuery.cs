@@ -1,20 +1,21 @@
-﻿using IncidentHub.Api.Infrastructure.Data;
+﻿using IncidentHub.Api.Contracts;
+using IncidentHub.Api.Infrastructure.Data;
 using MediatR;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace IncidentHub.Api.Features.Users.Queries.GetUsers;
+namespace IncidentHub.Api.Features.Users.Queries.GetUsersByRole;
 
-public record GetUsersForRoleQuery(string Role) : IRequest<IReadOnlyList<UserDto>>;
+public record GetUsersByRoleQuery(string Role) : IRequest<IReadOnlyList<UserDto>>;
 
-public class GetUsersForRoleQueryHandler(
+public class GetUsersByRoleQueryHandler(
     AppDbContext db,
-    ILogger<GetUsersForRoleQueryHandler> logger,
+    ILogger<GetUsersByRoleQueryHandler> logger,
     IConfiguration configuration)
-    : IRequestHandler<GetUsersForRoleQuery, IReadOnlyList<UserDto>>
+    : IRequestHandler<GetUsersByRoleQuery, IReadOnlyList<UserDto>>
 {
     public async Task<IReadOnlyList<UserDto>> Handle(
-        GetUsersForRoleQuery request, CancellationToken ct)
+        GetUsersByRoleQuery request, CancellationToken ct)
     {
         try
         {
@@ -83,12 +84,13 @@ public class GetUsersForRoleQueryHandler(
                 .Select(u => new UserDto
                 {
                     Id = u.UserId!,
-                    Name = !string.IsNullOrEmpty(u.Name) ? u.Name : u.Email ?? "Unknown",
+                    Name = !string.IsNullOrEmpty(u.Name) ? u.Name : u.Nickname ?? "Unknown",
+                    Nickname = !string.IsNullOrEmpty(u.Nickname) ? u.Nickname : u.Email ?? "Unknown",
                     Email = u.Email ?? string.Empty,
                     Picture = u.Picture
                 }).ToList() ?? new List<UserDto>();
 
-            logger.LogInformation("Retrieved {Count} users with role {Role} from Auth0", users.Count, request.Role);
+            logger.LogInformation("Retrieved {Count} users with role {Role} from Auth0", userDtos.Count, request.Role);
             return userDtos;
         }
         catch (Exception ex)
@@ -97,41 +99,4 @@ public class GetUsersForRoleQueryHandler(
             throw;
         }
     }
-}
-
-public record Auth0TokenResponse
-{
-    public string? AccessToken { get; set; }
-    public string? TokenType { get; set; }
-    public int? ExpiresIn { get; set; }
-    public string? Scope { get; set; }
-}
-
-public record Auth0Role
-{
-    public string? Id { get; set; }
-    public string? Name { get; set; }
-    public string? Description { get; set; }
-}
-
-public record Auth0UsersResponse
-{
-    public List<Auth0User>? Users { get; set; }
-}
-
-public record Auth0User
-{
-    [JsonPropertyName("user_id")]
-    public string? UserId { get; set; }
-    public string? Name { get; set; }
-    public string? Email { get; set; }
-    public string? Picture { get; set; }
-}
-
-public record UserDto
-{
-    public string Id { get; set; } = string.Empty;
-    public string Name { get; set; } = string.Empty;
-    public string Email { get; set; } = string.Empty;
-    public string? Picture { get; set; }
 }
