@@ -1,8 +1,10 @@
-﻿using FluentValidation;
+﻿using System.Text.Json.Serialization;
+using FluentValidation;
 using IncidentHub.Api.Contracts;
 using IncidentHub.Api.Domain;
 using IncidentHub.Api.Hubs;
 using IncidentHub.Api.Infrastructure.Data;
+using IncidentHub.Api.Infrastructure.Services;
 using MediatR;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
@@ -10,14 +12,18 @@ using Microsoft.EntityFrameworkCore;
 namespace IncidentHub.Api.Features.Incidents.Commands.AssignIncident;
 
 public record AssignIncidentCommand(
-    string Id,
-    string AssignedTo,
-    string? ChangedBy = null
-) : IRequest<IncidentDto>;
+    string? AssignedTo = null
+) : IRequest<IncidentDto>
+{
+    [JsonIgnore]
+    public Guid Id { get; init; }
+}
 
 public class AssignIncidentCommandHandler(
     AppDbContext db,
     IHubContext<IncidentBroadcastHub> hub,
+    ICurrentUserService currentUserService,
+    IUserDisplayNameService userDisplayNameService,
     ILogger<AssignIncidentCommandHandler> logger)
     : IRequestHandler<AssignIncidentCommand, IncidentDto>
 {
@@ -26,23 +32,20 @@ public class AssignIncidentCommandHandler(
     {
         try
         {
-            logger.LogInformation("Assigning incident {Id} to {AssignedTo}", request.Id, request.AssignedTo);
+            logger.LogInformation("Assigning incident {Id} to {AssignedTo}", request.Id, request.AssignedTo ?? "Unassigned");
 
             var incident = await db.Incidents
-                .FirstOrDefaultAsync(i => i.Id == Guid.Parse(request.Id), ct);
+                .FirstOrDefaultAsync(i => i.Id == request.Id, ct);
 
             if (incident == null)
             {
                 throw new Exception($"Incident with ID {request.Id} not found");
             }
 
-            var previousAssignedTo = incident.AssignedTo;
-            incident.AssignedTo = string.IsNullOrEmpty(request.AssignedTo) ? null : request.AssignedTo;
-
-            // Create timeline entry
+            var assignedToName = await userDisplayNameService.GetDisplayNameAsync(request.AssignedTo);
             var message = string.IsNullOrEmpty(request.AssignedTo)
                 ? "Incident unassigned"
-                : $"Incident assigned to {request.AssignedTo}";
+                : $"Incident assigned to {assignedToName}";
 
             var timelineEntry = new IncidentTimeline
             {
@@ -50,7 +53,7 @@ public class AssignIncidentCommandHandler(
                 IncidentId = incident.Id,
                 Message = message,
                 Timestamp = DateTimeOffset.UtcNow,
-                ChangedBy = request.ChangedBy ?? "system",
+                ChangedBy = currentUserService.UserId,
                 NewStatus = incident.Status
             };
 
@@ -91,9 +94,7 @@ public class AssignIncidentCommandValidator : AbstractValidator<AssignIncidentCo
     {
         RuleFor(x => x.Id)
             .NotEmpty()
-            .WithMessage("Incident ID is required.")
-            .Must(id => Guid.TryParse(id, out _))
-            .WithMessage("Incident ID must be a valid GUID.");
+            .WithMessage("Incident ID is required.");
 
         RuleFor(x => x.AssignedTo)
             .MaximumLength(500)

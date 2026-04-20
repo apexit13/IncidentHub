@@ -1,13 +1,14 @@
+using System.Text.Json.Serialization;
 using FluentValidation;
 using IncidentHub.Api.Contracts;
 using IncidentHub.Api.Domain;
+using IncidentHub.Api.Domain.Enums;
+using IncidentHub.Api.Hubs;
+using IncidentHub.Api.Infrastructure.Data;
+using IncidentHub.Api.Infrastructure.Services;
 using MediatR;
 using Microsoft.AspNetCore.SignalR;
-using IncidentHub.Api.Hubs;
 using Microsoft.EntityFrameworkCore;
-using IncidentHub.Api.Domain.Enums;
-using IncidentHub.Api.Infrastructure.Data;
-using System.Text.Json.Serialization;
 
 namespace IncidentHub.Api.Features.Incidents.Commands.UpdateIncidentStatus;
 
@@ -19,14 +20,12 @@ public record UpdateIncidentStatusCommand(
 {
     [JsonIgnore]
     public Guid Id { get; init; }
-
-    [JsonIgnore]
-    public string? ChangedBy { get; init; }
 }
 
 public class UpdateIncidentStatusCommandHandler(
     AppDbContext db,
     IHubContext<IncidentBroadcastHub> hub,
+    ICurrentUserService currentUserService,
     ILogger<UpdateIncidentStatusCommandHandler> logger)
     : IRequestHandler<UpdateIncidentStatusCommand, IncidentDto>
 {
@@ -36,6 +35,10 @@ public class UpdateIncidentStatusCommandHandler(
     {
         try
         {
+            var changedBy = currentUserService.UserId;
+
+            logger.LogInformation("Updating incident {Id} status to {NewStatus} by {ChangedBy}",
+                request.Id, request.NewStatus, changedBy ?? "NULL");
 
             var incident = await db.Incidents
                 .FirstOrDefaultAsync(i => i.Id == request.Id, ct)
@@ -55,7 +58,7 @@ public class UpdateIncidentStatusCommandHandler(
                 Id = Guid.NewGuid(),
                 IncidentId = incident.Id,
                 Message = timelineMessage,
-                ChangedBy = request.ChangedBy,
+                ChangedBy = changedBy,
                 Timestamp = DateTimeOffset.UtcNow,
                 NewStatus = request.NewStatus
             };
@@ -117,9 +120,5 @@ public class UpdateIncidentStatusCommandValidator
         RuleFor(x => x.Message)
             .MaximumLength(1000)
             .When(x => x.Message is not null);
-
-        RuleFor(x => x.ChangedBy)
-            .MaximumLength(500)
-            .When(x => x.ChangedBy is not null);
     }
 }

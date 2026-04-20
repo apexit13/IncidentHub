@@ -1,5 +1,5 @@
 import { useAuth0 } from '@auth0/auth0-react';
-import type { Incident, TimelineEntry } from '../types/incidents';
+import type { Incident, Status, TimelineEntry } from '../types/incidents';
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? "https://localhost:7125";
 
@@ -32,13 +32,22 @@ export function useIncidentApi() {
     getAll: () => apiRequest<Incident[]>("/api/incidents"),
     getById: (id: string) => apiRequest<Incident>(`/api/incidents/${id}`),
     getTimeline: (id: string) => apiRequest<TimelineEntry[]>(`/api/incidents/${id}/timeline`),
-    create: (data: { title: string; description: string; severity: string }) =>
-      apiRequest<Incident>("/api/incidents", { method: "POST", body: JSON.stringify(data) }),
-    updateStatus: (id: string, status: string) =>
-      apiRequest<Incident>(`/api/incidents/${id}/status`, { 
-        method: "PATCH", 
-        body: JSON.stringify({ status })
+    create: (data: { title: string; description: string; severity: string; assignedTo?: string }) =>
+      apiRequest<Incident>("/api/incidents", { 
+        method: "POST", 
+        body: JSON.stringify(data) 
       }),
+    updateStatus: (id: string, status: Status) => {
+      const defaultMessage = `Status changed to ${status}`;
+      
+      return apiRequest<Incident>(`/api/incidents/${id}/status`, { 
+        method: "PATCH", 
+        body: JSON.stringify({
+          newStatus: status,
+          message: defaultMessage
+        })
+      });
+    },
     resolve: (id: string) =>
       apiRequest<Incident>(`/api/incidents/${id}/resolve`, { 
         method: "POST", 
@@ -50,6 +59,8 @@ export function useIncidentApi() {
         body: JSON.stringify({ id, assignedTo }) 
       }),
     getUsersByRole: (role: string) =>
-      apiRequest<Array<{ id: string; name: string; email: string; picture?: string }>>(`/api/users/by-role/${role}`),
+      apiRequest<Array<{ id: string; name: string; nickname: string; email: string; picture?: string }>>(`/api/users/by-role/${role}`),
+    getUserById: (id: string) =>
+      apiRequest<{ id: string; name: string; nickname: string; email: string; picture?: string }>(`/api/users/${id}`),
   };
 }

@@ -1,7 +1,7 @@
 using FluentValidation;
 using IncidentHub.Api.Constants;
 using IncidentHub.Api.Features.Incidents.Commands.AssignIncident;
-using IncidentHub.Api.Features.Incidents.Commands.RaiseIncident;
+using IncidentHub.Api.Features.Incidents.Commands.CreateIncident;
 using IncidentHub.Api.Features.Incidents.Commands.ResolveIncident;
 using IncidentHub.Api.Features.Incidents.Commands.UpdateIncidentStatus;
 using IncidentHub.Api.Features.Incidents.Queries.GetIncidentById;
@@ -12,6 +12,7 @@ using IncidentHub.Api.Features.Users.Queries.GetUsersByRole;
 using IncidentHub.Api.Hubs;
 using IncidentHub.Api.Infrastructure.Data;
 using IncidentHub.Api.Infrastructure.Security;
+using IncidentHub.Api.Infrastructure.Services;
 using IncidentHub.Api.Middleware;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -52,6 +53,9 @@ try
             options.AddDocumentTransformer<BearerSecuritySchemeTransformer>();
         });
     }
+
+    builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+    builder.Services.AddScoped<IUserDisplayNameService, UserDisplayNameService>();
 
     builder.Services.AddHttpContextAccessor();
     builder.Services.AddMediatR(typeof(Program));
@@ -192,10 +196,10 @@ try
         .RequireAuthorization(Policies.CanReadUsers);
 
     // ── Commands ──────────────────────────────────────────────────────────
-    app.MapPost("/api/incidents", async (RaiseIncidentCommand cmd, IMediator m, HttpContext http) =>
+    app.MapPost("/api/incidents", async (
+        CreateIncidentCommand cmd, IMediator m, HttpContext http) =>
     {
-        var sub = http.User.FindFirst("sub")?.Value;
-        var result = await m.Send(cmd with { AssignedTo = sub });
+        var result = await m.Send(cmd);
         return Results.Created($"/api/incidents/{result.Id}", result);
     })
         .RequireAuthorization(Policies.CanManageIncidents);
@@ -203,8 +207,7 @@ try
     app.MapPatch("/api/incidents/{id:guid}/status", async (
         Guid id, UpdateIncidentStatusCommand cmd, IMediator m, HttpContext http) =>
     {
-        var sub = http.User.FindFirst("sub")?.Value;
-        var result = await m.Send(cmd with { Id = id, ChangedBy = sub });
+        var result = await m.Send(cmd with { Id = id });
         return Results.Ok(result);
     })
         .RequireAuthorization(Policies.CanManageIncidents);
@@ -219,13 +222,12 @@ try
         .RequireAuthorization(Policies.CanManageIncidents);
 
     app.MapPatch("/api/incidents/{id:guid}/assignment", async (
-    Guid id, AssignIncidentCommand cmd, IMediator m, HttpContext http) =>
+        Guid id, AssignIncidentCommand cmd, IMediator m) =>
     {
-        var sub = http.User.FindFirst("sub")?.Value;
-        var result = await m.Send(cmd with { Id = id.ToString(), ChangedBy = sub });
+        var result = await m.Send(cmd with { Id = id });
         return Results.Ok(result);
     })
-    .RequireAuthorization(Policies.CanAssignIncidents);
+        .RequireAuthorization(Policies.CanAssignIncidents);
 
     app.Run();
 }

@@ -15,7 +15,7 @@ import {
   NewIncidentModal, 
   Toast 
 } from './components';
-import type { Incident } from './types/incidents';
+import type { Incident, Status } from './types/incidents';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const SEVERITY_ORDER: Record<string, number> = { 
@@ -69,7 +69,8 @@ export default function App() {
 
   // ── Create incident ──
   const createMutation = useMutation({
-    mutationFn: incidentApi.create,
+    mutationFn: (data: { title: string; description: string; severity: string; assignedTo?: string }) => 
+      incidentApi.create(data),
     onSuccess: (newIncident: Incident) => {
       setNewIds(prev => new Set([...prev, newIncident.id]));
       setTimeout(() => setNewIds(prev => { 
@@ -84,18 +85,19 @@ export default function App() {
   });
 
   // ── Update status ──
-  const statusMutation = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: string }) => incidentApi.updateStatus(id, status),
-    onSuccess: (updated: Incident) => {
-      queryClient.setQueryData<Incident[]>(["incidents"], old =>
-        (old ?? []).map(i => i.id === updated.id ? updated : i)
-      );
-      queryClient.invalidateQueries({ queryKey: ["timeline", updated.id] });
-      if (selected?.id === updated.id) setSelected(updated);
-      addToast(`Status updated → ${updated.status}`);
-    },
-    onError: () => addToast("Failed to update status — check the API"),
-  });
+const statusMutation = useMutation({
+  mutationFn: ({ id, status }: { id: string; status: Status }) => 
+    incidentApi.updateStatus(id, status),
+  onSuccess: (updated: Incident) => {
+    queryClient.setQueryData<Incident[]>(["incidents"], old =>
+      (old ?? []).map(i => i.id === updated.id ? updated : i)
+    );
+    queryClient.invalidateQueries({ queryKey: ["timeline", updated.id] });
+    if (selected?.id === updated.id) setSelected(updated);
+    addToast(`Status updated → ${updated.status}`);
+  },
+  onError: () => addToast("Failed to update status — check the API"),
+});
 
   // ── Resolve incident ──
   const resolveMutation = useMutation({
@@ -110,6 +112,20 @@ export default function App() {
     },
     onError: () => addToast("Failed to resolve incident — check the API"),
   });
+
+  // ── Update assignment ──
+const assignmentMutation = useMutation({
+  mutationFn: ({ id, assignedTo }: { id: string; assignedTo: string }) => incidentApi.updateAssignment(id, assignedTo),
+  onSuccess: (updated: Incident) => {
+    queryClient.setQueryData<Incident[]>(["incidents"], old =>
+      (old ?? []).map(i => i.id === updated.id ? updated : i)
+    );
+    queryClient.invalidateQueries({ queryKey: ["timeline", updated.id] });
+    if (selected?.id === updated.id) setSelected(updated);
+    addToast(`Assignment updated → ${updated.assignedTo || "Unassigned"}`);
+  },
+  onError: () => addToast("Failed to update assignment — check the API"),
+});
 
   const filtered = incidents
     .filter(i => filter === "All" || i.status === filter)
@@ -183,6 +199,7 @@ export default function App() {
                   onClose={() => setSelected(null)}
                   onStatusChange={(id, status) => statusMutation.mutate({ id, status })}
                   onResolve={id => resolveMutation.mutate(id)}
+                  onAssignmentChange={(id, assignedTo) => assignmentMutation.mutate({ id, assignedTo })}
                 />
               )}
             </div>

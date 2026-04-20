@@ -1,6 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
+import { useAuth0 } from '@auth0/auth0-react';
 import { useIncidentApi } from '../../hooks/useIncidentApi';
 import { StatusBadge } from '../ui/StatusBadge';
+import { UserDisplay } from '../ui/UserDisplay';
 import type { Status } from '../../types/incidents';
 import { timeAgo, fmtTime } from '../../utils/timeHelpers';
 
@@ -9,6 +11,7 @@ interface TimelinePanelProps {
 }
 
 export function TimelinePanel({ incidentId }: TimelinePanelProps) {
+  const { user } = useAuth0();
   const incidentApi = useIncidentApi();
   const { data: entries = [], isLoading } = useQuery({
     queryKey: ["timeline", incidentId],
@@ -16,6 +19,23 @@ export function TimelinePanel({ incidentId }: TimelinePanelProps) {
   });
 
   if (isLoading) return <div className="text-xs text-gray-400 py-2">Loading timeline…</div>;
+
+const getDisplayName = (changedBy: string | null) => {
+  if (!changedBy) return "system";
+  
+  // If it's the current user, display their name without additional API call
+  if (user && changedBy === user.sub) {
+    return user.name || user.nickname || user.email || "Current User";
+  }
+  
+  // Handle test user
+  if (changedBy === "auth0|test-user-id") {
+    return "Test User";
+  }
+  
+  // For other users, use the UserDisplay component
+  return <UserDisplay userId={changedBy} />;
+};
 
   return (
     <div className="py-1">
@@ -34,9 +54,11 @@ export function TimelinePanel({ incidentId }: TimelinePanelProps) {
                 <StatusBadge status={e.newStatus as Status} />
               </span>
             )}
-            <div className="text-[11px] text-gray-400 mt-0.5">
-              {e.changedBy ?? "system"} · {fmtTime(e.timestamp)} ({timeAgo(e.timestamp)})
-            </div>
+          <div className="text-[11px] text-gray-400 mt-0.5">
+            <span>
+              {getDisplayName(e.changedBy)} · {fmtTime(e.timestamp)} ({timeAgo(e.timestamp)})
+            </span>
+          </div>
           </div>
         </div>
       ))}

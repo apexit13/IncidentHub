@@ -1,18 +1,19 @@
 import type { Incident, Status } from '../../types/incidents';
 import { usePermissions } from '../../hooks/usePermissions';
-import { SeverityBadge } from '../ui/SeverityBadge';
-import { StatusBadge } from '../ui/StatusBadge';
+import { SeverityBadge, StatusBadge, UserSelector} from '../../components';
 import { timeAgo } from '../../utils/timeHelpers';
 import { TimelinePanel } from './TimelinePanel';
+
 
 interface IncidentDetailPanelProps {
   incident: Incident;
   onClose: () => void;
   onStatusChange: (id: string, status: Status) => void;
   onResolve: (id: string) => void;
+  onAssignmentChange: (id: string, assignedTo: string) => void;
 }
 
-export function IncidentDetailPanel({ incident, onClose, onStatusChange, onResolve }: IncidentDetailPanelProps) {
+export function IncidentDetailPanel({ incident, onClose, onStatusChange, onResolve, onAssignmentChange }: IncidentDetailPanelProps) {
   const { canManageIncidents } = usePermissions();
   const statuses: Status[] = ["New", "Investigating", "Identified", "Monitoring"];
 
@@ -39,16 +40,31 @@ export function IncidentDetailPanel({ incident, onClose, onStatusChange, onResol
 
         <div className="grid grid-cols-2 gap-3">
           {[
-            ["Assigned To", incident.assignedTo ?? "Unassigned"],
             ["Created", timeAgo(incident.createdAt)],
             ["Resolved", incident.resolvedAt ? timeAgo(incident.resolvedAt) : "—"],
             ["ID", incident.id.slice(0, 8) + "…"],
           ].map(([k, v]) => (
-            <div key={k} className="wrap-break-word">
+            <div key={k} className="break-words">
               <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">{k}</div>
               <div className="text-sm font-medium text-gray-800 break-all">{v}</div>
             </div>
           ))}
+        </div>
+
+        {/* Assignment Section */}
+        <div>
+          <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Assigned To</div>
+          {canManageIncidents ? (
+            <UserSelector
+              value={incident.assignedTo || ""}
+              onChange={(value) => onAssignmentChange(incident.id, value)}
+              placeholder="Select a responder"
+            />
+          ) : (
+            <div className="text-sm font-medium text-gray-800 break-all">
+              {incident.assignedTo || "Unassigned"}
+            </div>
+          )}
         </div>
 
         {canManageIncidents && incident.status !== "Resolved" && (

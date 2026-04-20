@@ -4,33 +4,36 @@ using IncidentHub.Api.Domain;
 using IncidentHub.Api.Domain.Enums;
 using IncidentHub.Api.Hubs;
 using IncidentHub.Api.Infrastructure.Data;
+using IncidentHub.Api.Infrastructure.Services;
 using MediatR;
 using Microsoft.AspNetCore.SignalR;
 using Severity = IncidentHub.Api.Domain.Enums.Severity;
 
-namespace IncidentHub.Api.Features.Incidents.Commands.RaiseIncident;
+namespace IncidentHub.Api.Features.Incidents.Commands.CreateIncident;
 
-public record RaiseIncidentCommand(
+public record CreateIncidentCommand(
     string Title,
     string? Description,
-    Severity Severity
-) : IRequest<IncidentDto>
-{
-    public string? AssignedTo { get; init; }
-}
+    Severity Severity,
+    string? AssignedTo = null
+) : IRequest<IncidentDto>;
 
-public class RaiseIncidentCommandHandler(
+
+public class CreateIncidentCommandHandler(
     AppDbContext db,
     IHubContext<IncidentBroadcastHub> hub,
-    ILogger<RaiseIncidentCommandHandler> logger)
-    : IRequestHandler<RaiseIncidentCommand, IncidentDto>
+    ICurrentUserService currentUserService,
+    ILogger<CreateIncidentCommandHandler> logger)
+    : IRequestHandler<CreateIncidentCommand, IncidentDto>
 {
     public async Task<IncidentDto> Handle(
-        RaiseIncidentCommand request, CancellationToken ct)
+        CreateIncidentCommand request, CancellationToken ct)
     {
         try
         {
             logger.LogInformation("Raising new incident: {Title}", request.Title);
+
+            var changedBy = currentUserService.UserId;
 
             var incident = new Incident
             {
@@ -52,7 +55,7 @@ public class RaiseIncidentCommandHandler(
                 IncidentId = incident.Id,
                 Message = $"Incident '{incident.Title}' raised with {incident.Severity} severity",
                 Timestamp = DateTimeOffset.UtcNow,
-                ChangedBy = request.AssignedTo ?? "system",
+                ChangedBy = changedBy,
                 NewStatus = IncidentStatus.New
             };
 
@@ -60,7 +63,6 @@ public class RaiseIncidentCommandHandler(
 
             await db.SaveChangesAsync(ct);
 
-            // Map to DTOs using ToDto() methods
             var incidentDto = incident.ToDto();
             var timelineEntryDto = timelineEntry.ToDto();
 
@@ -87,9 +89,9 @@ public class RaiseIncidentCommandHandler(
     }
 }
 
-public class RaiseIncidentCommandValidator : AbstractValidator<RaiseIncidentCommand>
+public class CreateIncidentCommandValidator : AbstractValidator<CreateIncidentCommand>
 {
-    public RaiseIncidentCommandValidator()
+    public CreateIncidentCommandValidator()
     {
         RuleFor(x => x.Title)
             .NotEmpty()

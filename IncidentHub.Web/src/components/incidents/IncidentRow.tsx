@@ -2,6 +2,7 @@ import type { Incident } from '../../types/incidents';
 import { SeverityBadge } from '../ui/SeverityBadge';
 import { StatusBadge } from '../ui/StatusBadge';
 import { timeAgo } from '../../utils/timeHelpers';
+import { UserDisplay } from '../ui/UserDisplay';
 
 interface IncidentRowProps {
   incident: Incident;
@@ -32,7 +33,7 @@ export function IncidentRow({ incident, isNew, onClick, isSelected }: IncidentRo
         <StatusBadge status={incident.status} />
       </td>
       <td className="px-3.5 py-2.5 border-b border-gray-100 align-middle text-xs text-gray-600">
-        {incident.assignedTo ?? <span className="text-gray-400">Unassigned</span>}
+        <UserDisplay userId={incident.assignedTo} />
       </td>
       <td className="px-3.5 py-2.5 border-b border-gray-100 align-middle text-xs text-gray-500 whitespace-nowrap">
         {timeAgo(incident.createdAt)}

@@ -1,14 +1,20 @@
 import { useState } from 'react';
-import { Button } from '../ui/Button';
+import { UserSelector } from '../ui/UserSelector';
+import type { Severity } from '../../types/incidents';
 
 interface NewIncidentModalProps {
   onClose: () => void;
-  onSubmit: (f: { title: string; description: string; severity: string }) => void;
+  onSubmit: (f: { title: string; description: string; severity: string; assignedTo?: string }) => void;
   isSubmitting: boolean;
 }
 
 export function NewIncidentModal({ onClose, onSubmit, isSubmitting }: NewIncidentModalProps) {
-  const [form, setForm] = useState({ title: "", description: "", severity: "Medium" });
+  const [form, setForm] = useState({ 
+    title: "", 
+    description: "", 
+    severity: "Medium" as Severity,  // Properly type as Severity
+    assignedTo: ""
+  });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   function validate() {
@@ -24,7 +30,7 @@ export function NewIncidentModal({ onClose, onSubmit, isSubmitting }: NewInciden
     onSubmit(form);
   }
 
-  const SEV_BTN: Record<string, string> = {
+  const SEV_BTN: Record<Severity, string> = {  // Use Severity type
     Critical: "border-red-500 bg-red-500 text-white",
     High:     "border-orange-500 bg-orange-500 text-white",
     Medium:   "border-yellow-400 bg-yellow-400 text-gray-900",
@@ -73,10 +79,10 @@ export function NewIncidentModal({ onClose, onSubmit, isSubmitting }: NewInciden
           <div>
             <label className="block text-xs font-bold text-gray-600 mb-2">Severity</label>
             <div className="flex gap-2">
-              {["Low", "Medium", "High", "Critical"].map(s => (
+              {(["Low", "Medium", "High", "Critical"] as Severity[]).map(s => (
                 <button
                   key={s}
-                  onClick={() => setForm(f => ({ ...f, severity: s }))}
+                  onClick={() => setForm(f => ({ ...f, severity: s }))}  // No need for type assertion
                   className={`flex-1 py-2 rounded border-2 text-xs font-bold transition-colors cursor-pointer ${
                     form.severity === s ? SEV_BTN[s] : "border-gray-200 bg-white text-gray-500 hover:bg-gray-50"
                   }`}
@@ -86,18 +92,30 @@ export function NewIncidentModal({ onClose, onSubmit, isSubmitting }: NewInciden
               ))}
             </div>
           </div>
+
+          <div>
+            <label className="block text-xs font-bold text-gray-600 mb-1">Assign To</label>
+            <UserSelector
+              value={form.assignedTo}
+              onChange={(value) => setForm(f => ({ ...f, assignedTo: value }))}
+              placeholder="Select a responder (optional)"
+            />
+          </div>
         </div>
 
         <div className="px-6 pb-5 flex gap-2.5 justify-end">
-          <Button onClick={onClose} variant="secondary">
+          <button onClick={onClose} className="px-5 py-2 rounded border border-gray-300 bg-white text-gray-600 font-semibold text-sm hover:bg-gray-50 transition-colors cursor-pointer">
             Cancel
-          </Button>
-          <Button
+          </button>
+          <button
             onClick={handleSubmit}
             disabled={isSubmitting}
+            className={`px-6 py-2 rounded text-white font-bold text-sm transition-colors cursor-pointer ${
+              isSubmitting ? "bg-gray-400 cursor-default" : "bg-blue-700 hover:bg-blue-800"
+            }`}
           >
             {isSubmitting ? "Raising…" : "Raise Incident"}
-          </Button>
+          </button>
         </div>
       </div>
     </div>

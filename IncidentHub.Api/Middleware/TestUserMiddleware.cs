@@ -3,6 +3,7 @@ using IncidentHub.Api.Constants;
 using static IncidentHub.Api.Constants.AuthPolicies;
 
 namespace IncidentHub.Api.Middleware;
+
 public class TestUserMiddleware
 {
     private readonly RequestDelegate _next;
@@ -16,19 +17,21 @@ public class TestUserMiddleware
 
     public async Task InvokeAsync(HttpContext context)
     {
-        // Get permission set from header or use default
         var permissionSet = context.Request.Headers["X-Permissions"].ToString();
         if (string.IsNullOrEmpty(permissionSet))
             permissionSet = _config["TestUser:DefaultPermissionSet"] ?? "admin";
 
         var permissions = GetPermissionsForSet(permissionSet);
 
+        var testUserId = "auth0|test-user-id";
+
         var claims = new List<Claim>
         {
-            new(ClaimTypes.NameIdentifier, "dev-user")
+            new(ClaimTypes.NameIdentifier, testUserId),
+            new(ClaimTypes.Name, "Test User"),
+            new(ClaimTypes.Email, "test@example.com")
         };
 
-        // Add each permission as an individual claim
         foreach (var permission in permissions)
         {
             claims.Add(new Claim(AuthClaimTypes.Permissions, permission));
