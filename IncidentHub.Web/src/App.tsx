@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth0 } from '@auth0/auth0-react';
 import { usePermissions } from './hooks/usePermissions';
@@ -28,11 +28,11 @@ const SEVERITY_ORDER: Record<string, number> = {
 // ─── App ──────────────────────────────────────────────────────────────────────
 export default function App() {
   const { user, logout } = useAuth0();
-  const { canReadIncidents, canManageIncidents } = usePermissions();
+  const { canReadIncidents, canCreateIncidents } = usePermissions();
   const queryClient = useQueryClient();
   const { connectionState } = useIncidentSignalR();
   const incidentApi = useIncidentApi();
-  const [selected, setSelected] = useState<Incident | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [filter, setFilter] = useState("All");
   const [search, setSearch] = useState("");
@@ -48,17 +48,26 @@ export default function App() {
   }
 
   // ── SignalR connection toast notifications ──
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (connectionState === 'connected') {
-        addToast("Live updates connected");
-      } else if (connectionState === 'disconnected') {
-        addToast("Live updates disconnected - using polling");
-      }
-    }, 0);
+const prevConnectionState = useRef<string | null>(null);
 
-    return () => clearTimeout(timer);
-  }, [connectionState]);
+useEffect(() => {
+  const timer = setTimeout(() => {
+    if (prevConnectionState.current === null) {
+      prevConnectionState.current = connectionState;
+      return;
+    }
+
+    if (connectionState === 'connected') {
+      addToast("Live updates connected");
+    } else if (connectionState === 'disconnected') {
+      addToast("Live updates disconnected - using polling");
+    }
+
+    prevConnectionState.current = connectionState;
+  }, 0);
+
+  return () => clearTimeout(timer);
+}, [connectionState]);
 
   // ── Fetch all incidents ──
   const { data: incidents = [], isLoading: incidentsLoading, isError } = useQuery({
@@ -66,6 +75,7 @@ export default function App() {
     queryFn: () => incidentApi.getAll(),
     enabled: canReadIncidents
   });
+  const selected = incidents.find(i => i.id === selectedId) ?? null;
 
   // ── Create incident ──
   const createMutation = useMutation({
@@ -93,7 +103,7 @@ const statusMutation = useMutation({
       (old ?? []).map(i => i.id === updated.id ? updated : i)
     );
     queryClient.invalidateQueries({ queryKey: ["timeline", updated.id] });
-    if (selected?.id === updated.id) setSelected(updated);
+    setSelectedId(updated.id);
     addToast(`Status updated → ${updated.status}`);
   },
   onError: () => addToast("Failed to update status — check the API"),
@@ -107,7 +117,7 @@ const statusMutation = useMutation({
         (old ?? []).map(i => i.id === resolved.id ? resolved : i)
       );
       queryClient.invalidateQueries({ queryKey: ["timeline", resolved.id] });
-      if (selected?.id === resolved.id) setSelected(resolved);
+      if (selected?.id === resolved.id) setSelectedId(resolved.id);
       addToast("Incident resolved ✓");
     },
     onError: () => addToast("Failed to resolve incident — check the API"),
@@ -123,10 +133,10 @@ const assignmentMutation = useMutation({
 
     queryClient.setQueryData<Incident>(["incident", updated.id], updated);
     
-    if (selected?.id === updated.id) setSelected(updated);
+    setSelectedId(updated.id);
 
     queryClient.invalidateQueries({ queryKey: ["timeline", updated.id] });
-    if (selected?.id === updated.id) setSelected(updated);
+    setSelectedId(updated.id);
     addToast(`Assignment updated → ${userName || "Unassigned"}`);
   },
   onError: () => addToast("Failed to update assignment — check the API"),
@@ -148,7 +158,7 @@ const assignmentMutation = useMutation({
     <div className="font-sans bg-gray-100 min-h-screen flex flex-col">
       <Topbar 
         user={userName} 
-        onNew={canManageIncidents ? () => setShowModal(true) : undefined}
+        onNew={canCreateIncidents ? () => setShowModal(true) : undefined}
         onLogout={() => logout({ logoutParams: { returnTo: window.location.origin } })}
       />
       <ConnectionBar status={connectionState} />
@@ -194,14 +204,14 @@ const assignmentMutation = useMutation({
                 <IncidentTable
                   incidents={filtered}
                   newIds={newIds}
-                  onSelect={i => setSelected(prev => prev?.id === i.id ? null : i)}
+                  onSelect={i => setSelectedId(prev => prev === i.id ? null : i.id)}
                   selectedId={selected?.id}
                 />
               </div>
               {selected && (
                 <IncidentDetailPanel
                   incident={selected}
-                  onClose={() => setSelected(null)}
+                  onClose={() => setSelectedId(null)}
                   onStatusChange={(id, status) => statusMutation.mutate({ id, status })}
                   onResolve={id => resolveMutation.mutate(id)}
                   onAssignmentChange={(id, assignedTo) => assignmentMutation.mutate({ id, assignedTo })}
@@ -224,9 +234,15 @@ const assignmentMutation = useMutation({
         />
       )}
       
-      {toasts.map(t => (
-        <Toast key={t.id} message={t.msg} onDone={() => setToasts(ts => ts.filter(x => x.id !== t.id))} />
-      ))}
+      <div className="fixed bottom-6 right-6 z-2000 flex flex-col-reverse gap-2">
+        {toasts.map((t) => (
+          <Toast 
+            key={t.id} 
+            message={t.msg} 
+            onDone={() => setToasts(ts => ts.filter(x => x.id !== t.id))} 
+          />
+        ))}
+      </div>
     </div>
   );
 }

@@ -96,6 +96,9 @@ try
         options.AddPolicy(Policies.CanReadIncidents, policy =>
             policy.RequireClaim("permissions", Permissions.ReadIncidents));
 
+        options.AddPolicy(Policies.CanCreateIncidents, policy =>
+            policy.RequireClaim("permissions", Permissions.CreateIncidents));
+
         options.AddPolicy(Policies.CanManageIncidents, policy =>
             policy.RequireClaim("permissions", Permissions.ManageIncidents));
 
@@ -202,7 +205,7 @@ try
         var result = await m.Send(cmd);
         return Results.Created($"/api/incidents/{result.Id}", result);
     })
-        .RequireAuthorization(Policies.CanManageIncidents);
+        .RequireAuthorization(Policies.CanCreateIncidents);
 
     app.MapPatch("/api/incidents/{id:guid}/status", async (
         Guid id, UpdateIncidentStatusCommand cmd, IMediator m, HttpContext http) =>

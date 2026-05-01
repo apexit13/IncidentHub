@@ -12,7 +12,7 @@ export function Toast({ message, onDone }: ToastProps) {
   }, [onDone]);
   
   return (
-    <div className="fixed bottom-6 right-6 z-2000 bg-gray-900 text-white px-4 py-3 rounded-lg shadow-2xl flex items-center gap-2.5 text-sm font-semibold max-w-sm">
+    <div className="bg-gray-900 text-white px-4 py-3 rounded-lg shadow-2xl flex items-center gap-2.5 text-sm font-semibold max-w-sm transform transition-all duration-300 ease-in-out hover:scale-105">
       <span className="text-base">📡</span>
       {message}
     </div>

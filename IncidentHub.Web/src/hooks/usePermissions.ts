@@ -8,6 +8,7 @@ export const usePermissions = () => {
 
   return {
     canReadIncidents: permissions.includes("read:incidents"),
+    canCreateIncidents: permissions.includes("create:incidents"),
     canManageIncidents: permissions.includes("manage:incidents"),
     canAssignIncidents: permissions.includes("assign:incidents"),
     hasPermission: (perm: string) => permissions.includes(perm),
