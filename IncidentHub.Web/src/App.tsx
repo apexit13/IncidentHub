@@ -40,7 +40,7 @@ export default function App() {
   const [toasts, setToasts] = useState<{ id: number; msg: string }[]>([]);
 
   // Get user info from Auth0
-  const userName = user?.name || "Unknown User";
+  const userName = user?.name || user?.nickname || user?.email || "Unknown User";
 
   function addToast(msg: string) {
     const id = Date.now();
@@ -120,9 +120,14 @@ const assignmentMutation = useMutation({
     queryClient.setQueryData<Incident[]>(["incidents"], old =>
       (old ?? []).map(i => i.id === updated.id ? updated : i)
     );
+
+    queryClient.setQueryData<Incident>(["incident", updated.id], updated);
+    
+    if (selected?.id === updated.id) setSelected(updated);
+
     queryClient.invalidateQueries({ queryKey: ["timeline", updated.id] });
     if (selected?.id === updated.id) setSelected(updated);
-    addToast(`Assignment updated → ${updated.assignedTo || "Unassigned"}`);
+    addToast(`Assignment updated → ${userName || "Unassigned"}`);
   },
   onError: () => addToast("Failed to update assignment — check the API"),
 });

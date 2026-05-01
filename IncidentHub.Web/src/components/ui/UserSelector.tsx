@@ -3,7 +3,7 @@ import { useIncidentApi } from '../../hooks/useIncidentApi';
 
 interface UserSelectorProps {
   value: string;
-  onChange: (value: string) => void;
+  onChange: (id: string, name: string) => void;
   placeholder?: string;
   disabled?: boolean;
 }
@@ -18,8 +18,12 @@ export function UserSelector({ value, onChange, placeholder = "Select a responde
 
   return (
     <select
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
+      value={value || ""}
+      onChange={(e) => {
+        const responder = responders.find(r => r.id === e.target.value);
+        const name = responder ? (responder.name || responder.nickname || responder.email) : "";
+        onChange(e.target.value, name);
+      }}
       disabled={disabled}
       className="w-full border border-gray-300 rounded px-3 py-2 text-sm outline-none focus:border-blue-500 transition-colors bg-white"
     >

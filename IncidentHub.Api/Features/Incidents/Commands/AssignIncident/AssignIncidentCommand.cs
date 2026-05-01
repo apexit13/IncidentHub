@@ -35,14 +35,16 @@ public class AssignIncidentCommandHandler(
             logger.LogInformation("Assigning incident {Id} to {AssignedTo}", request.Id, request.AssignedTo ?? "Unassigned");
 
             var incident = await db.Incidents
-                .FirstOrDefaultAsync(i => i.Id == request.Id, ct);
+                .FirstOrDefaultAsync(i => i.Id == request.Id, ct)
+                ?? throw new KeyNotFoundException($"Incident {request.Id} not found.");
 
-            if (incident == null)
-            {
-                throw new Exception($"Incident with ID {request.Id} not found");
-            }
+            string? assignedToName = null;
 
-            var assignedToName = await userDisplayNameService.GetDisplayNameAsync(request.AssignedTo);
+            if (!string.IsNullOrEmpty(request.AssignedTo))
+                assignedToName = await userDisplayNameService.GetDisplayNameAsync(request.AssignedTo);
+
+            incident.AssignedTo = request.AssignedTo;
+
             var message = string.IsNullOrEmpty(request.AssignedTo)
                 ? "Incident unassigned"
                 : $"Incident assigned to {assignedToName}";
@@ -62,7 +64,9 @@ public class AssignIncidentCommandHandler(
             await db.SaveChangesAsync(ct);
 
             // Map to DTOs using ToDto() methods
-            var incidentDto = incident.ToDto();
+            // Use a with-expression to set the init-only AssignedTo property
+            var incidentDto = incident.ToDto() with { AssignedTo = request.AssignedTo };
+
             var timelineEntryDto = timelineEntry.ToDto();
 
             // Broadcast both events

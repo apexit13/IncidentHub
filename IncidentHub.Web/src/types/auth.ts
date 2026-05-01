@@ -6,4 +6,4 @@ export interface IncidentUser extends User {
   [PERMISSION_NAMESPACE]?: string[];
 }
 
-export type IncidentPermission = "read:incidents" | "manage:incidents";
+export type IncidentPermission = "read:incidents" | "manage:incidents" | "assign:incidents";

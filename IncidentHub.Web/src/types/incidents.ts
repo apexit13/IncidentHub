@@ -8,6 +8,7 @@ export interface Incident {
   severity: Severity;
   status: Status;
   assignedTo: string | null;
+  assignedToName: string | null;
   createdAt: string;
   resolvedAt: string | null;
 }

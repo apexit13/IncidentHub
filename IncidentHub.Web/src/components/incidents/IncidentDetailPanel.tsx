@@ -3,19 +3,27 @@ import { usePermissions } from '../../hooks/usePermissions';
 import { SeverityBadge, StatusBadge, UserSelector} from '../../components';
 import { timeAgo } from '../../utils/timeHelpers';
 import { TimelinePanel } from './TimelinePanel';
-
+import { useQuery } from '@tanstack/react-query';
+import { useIncidentApi } from '../../hooks/useIncidentApi';
 
 interface IncidentDetailPanelProps {
   incident: Incident;
   onClose: () => void;
   onStatusChange: (id: string, status: Status) => void;
   onResolve: (id: string) => void;
-  onAssignmentChange: (id: string, assignedTo: string) => void;
+  onAssignmentChange: (id: string, assignedToId: string, assignedToName: string) => void;
 }
 
 export function IncidentDetailPanel({ incident, onClose, onStatusChange, onResolve, onAssignmentChange }: IncidentDetailPanelProps) {
-  const { canManageIncidents } = usePermissions();
+  const { canManageIncidents, canAssignIncidents } = usePermissions();
+  const incidentApi = useIncidentApi();
   const statuses: Status[] = ["New", "Investigating", "Identified", "Monitoring"];
+
+  const { data: assignedUser } = useQuery({
+    queryKey: ["user", incident.assignedTo],
+    queryFn: () => incidentApi.getUserById(incident.assignedTo!),
+    enabled: !!incident.assignedTo,
+  });
 
   return (
     <div className="w-96 shrink-0 border-l border-gray-200 flex flex-col h-full overflow-hidden bg-white">
@@ -44,25 +52,24 @@ export function IncidentDetailPanel({ incident, onClose, onStatusChange, onResol
             ["Resolved", incident.resolvedAt ? timeAgo(incident.resolvedAt) : "—"],
             ["ID", incident.id.slice(0, 8) + "…"],
           ].map(([k, v]) => (
-            <div key={k} className="break-words">
+            <div key={k} className="wrap-break-word">
               <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">{k}</div>
               <div className="text-sm font-medium text-gray-800 break-all">{v}</div>
             </div>
           ))}
         </div>
 
-        {/* Assignment Section */}
         <div>
           <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Assigned To</div>
-          {canManageIncidents ? (
+          {canAssignIncidents ? (
             <UserSelector
               value={incident.assignedTo || ""}
-              onChange={(value) => onAssignmentChange(incident.id, value)}
+              onChange={(id, name) => onAssignmentChange(incident.id, id, name)}
               placeholder="Select a responder"
             />
           ) : (
             <div className="text-sm font-medium text-gray-800 break-all">
-              {incident.assignedTo || "Unassigned"}
+              {assignedUser?.name || assignedUser?.nickname || assignedUser?.email || "Unassigned"}
             </div>
           )}
         </div>
