@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.SignalR;
+﻿using Microsoft.AspNetCore.SignalR;
 
 namespace IncidentHub.Api.Hubs;
 
@@ -16,4 +15,4 @@ public class IncidentBroadcastHub : Hub
     // No methods needed for the current feature set.
     // If you later want clients to send messages to the server
     // (e.g. "user is typing a status update"), add them here.
-}  
+}

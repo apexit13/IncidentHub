@@ -26,20 +26,20 @@ public class ExceptionHandlingMiddleware(
     {
         var (statusCode, message) = ex switch
         {
-            KeyNotFoundException    => (HttpStatusCode.NotFound,            ex.Message),
-            InvalidOperationException => (HttpStatusCode.Conflict,          ex.Message),
-            UnauthorizedAccessException => (HttpStatusCode.Forbidden,       ex.Message),
-            ArgumentException       => (HttpStatusCode.BadRequest,          ex.Message),
-            _                       => (HttpStatusCode.InternalServerError, "An unexpected error occurred.")
+            KeyNotFoundException => (HttpStatusCode.NotFound, ex.Message),
+            InvalidOperationException => (HttpStatusCode.Conflict, ex.Message),
+            UnauthorizedAccessException => (HttpStatusCode.Forbidden, ex.Message),
+            ArgumentException => (HttpStatusCode.BadRequest, ex.Message),
+            _ => (HttpStatusCode.InternalServerError, "An unexpected error occurred.")
         };
 
         context.Response.ContentType = "application/json";
-        context.Response.StatusCode  = (int)statusCode;
+        context.Response.StatusCode = (int)statusCode;
 
         var body = JsonSerializer.Serialize(new
         {
-            status  = (int)statusCode,
-            error   = message
+            status = (int)statusCode,
+            error = message
         });
 
         return context.Response.WriteAsync(body);

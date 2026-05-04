@@ -14,79 +14,79 @@ public static class SeedData
         var now = DateTimeOffset.UtcNow;
 
         // ── Users (Auth0 sub claims — replace with real subs after creating users) ──
-        const string jayD   = "auth0|69c9754aa20453904df4ac43";
-        const string samR   = "auth0|69c975908b672911c49fd5dd";
-        const string alexL  = "auth0|69c975c78b672911c49fd5e5";
-        const string miaC   = "auth0|69c975fe8b672911c49fd5f3";
+        const string jayD = "auth0|69c9754aa20453904df4ac43";
+        const string samR = "auth0|69c975908b672911c49fd5dd";
+        const string alexL = "auth0|69c975c78b672911c49fd5e5";
+        const string miaC = "auth0|69c975fe8b672911c49fd5f3";
 
         // ── Incidents ──────────────────────────────────────────────────────────────
 
         var inc1 = new Incident
         {
-            Id          = Guid.Parse("00000000-0000-0000-0000-000000000001"),
-            Title       = "Payment gateway timeout — EU region",
+            Id = Guid.Parse("00000000-0000-0000-0000-000000000001"),
+            Title = "Payment gateway timeout — EU region",
             Description = "Customers in the EU region are receiving 504 errors when attempting to complete checkout. Affects approximately 12% of transactions.",
-            Severity    = Severity.Critical,
-            Status      = IncidentStatus.Investigating,
-            AssignedTo  = jayD,
-            CreatedAt   = now.AddHours(-2)
+            Severity = Severity.Critical,
+            Status = IncidentStatus.Investigating,
+            AssignedTo = jayD,
+            CreatedAt = now.AddHours(-2)
         };
 
         var inc2 = new Incident
         {
-            Id          = Guid.Parse("00000000-0000-0000-0000-000000000002"),
-            Title       = "Search indexing delayed — all regions",
+            Id = Guid.Parse("00000000-0000-0000-0000-000000000002"),
+            Title = "Search indexing delayed — all regions",
             Description = "New listings are taking 15–20 minutes to appear in search results. Expected SLA is under 60 seconds.",
-            Severity    = Severity.High,
-            Status      = IncidentStatus.Identified,
-            AssignedTo  = samR,
-            CreatedAt   = now.AddHours(-3)
+            Severity = Severity.High,
+            Status = IncidentStatus.Identified,
+            AssignedTo = samR,
+            CreatedAt = now.AddHours(-3)
         };
 
         var inc3 = new Incident
         {
-            Id          = Guid.Parse("00000000-0000-0000-0000-000000000003"),
-            Title       = "Webhook delivery latency elevated",
+            Id = Guid.Parse("00000000-0000-0000-0000-000000000003"),
+            Title = "Webhook delivery latency elevated",
             Description = "Outbound webhooks to third-party integrations are experiencing 30–45 second delays. Stripe and Shopify integrations most affected.",
-            Severity    = Severity.Medium,
-            Status      = IncidentStatus.Monitoring,
-            AssignedTo  = alexL,
-            CreatedAt   = now.AddHours(-5)
+            Severity = Severity.Medium,
+            Status = IncidentStatus.Monitoring,
+            AssignedTo = alexL,
+            CreatedAt = now.AddHours(-5)
         };
 
         var inc4 = new Incident
         {
-            Id          = Guid.Parse("00000000-0000-0000-0000-000000000004"),
-            Title       = "Login service intermittent 401s",
+            Id = Guid.Parse("00000000-0000-0000-0000-000000000004"),
+            Title = "Login service intermittent 401s",
             Description = "Small percentage of users receiving unexpected 401 responses despite valid sessions. Likely a token validation edge case.",
-            Severity    = Severity.High,
-            Status      = IncidentStatus.Investigating,
-            AssignedTo  = miaC,
-            CreatedAt   = now.AddHours(-1)
+            Severity = Severity.High,
+            Status = IncidentStatus.Investigating,
+            AssignedTo = miaC,
+            CreatedAt = now.AddHours(-1)
         };
 
         var inc5 = new Incident
         {
-            Id          = Guid.Parse("00000000-0000-0000-0000-000000000005"),
-            Title       = "Image CDN cache purge failure",
+            Id = Guid.Parse("00000000-0000-0000-0000-000000000005"),
+            Title = "Image CDN cache purge failure",
             Description = "Updated product images not reflecting for some users due to CDN cache not purging on update.",
-            Severity    = Severity.Low,
-            Status      = IncidentStatus.Resolved,
-            AssignedTo  = samR,
-            CreatedAt   = now.AddHours(-8),
-            ResolvedAt  = now.AddHours(-6)
+            Severity = Severity.Low,
+            Status = IncidentStatus.Resolved,
+            AssignedTo = samR,
+            CreatedAt = now.AddHours(-8),
+            ResolvedAt = now.AddHours(-6)
         };
 
         var inc6 = new Incident
         {
-            Id          = Guid.Parse("00000000-0000-0000-0000-000000000006"),
-            Title       = "Database connection pool exhausted — US-West",
+            Id = Guid.Parse("00000000-0000-0000-0000-000000000006"),
+            Title = "Database connection pool exhausted — US-West",
             Description = "API response times exceeding 10s in US-West. Root cause traced to a missing index causing full table scans under load.",
-            Severity    = Severity.Critical,
-            Status      = IncidentStatus.Resolved,
-            AssignedTo  = jayD,
-            CreatedAt   = now.AddDays(-1),
-            ResolvedAt  = now.AddDays(-1).AddHours(2)
+            Severity = Severity.Critical,
+            Status = IncidentStatus.Resolved,
+            AssignedTo = jayD,
+            CreatedAt = now.AddDays(-1),
+            ResolvedAt = now.AddDays(-1).AddHours(2)
         };
 
         db.Incidents.AddRange(inc1, inc2, inc3, inc4, inc5, inc6);

@@ -1,8 +1,7 @@
-﻿using IncidentHub.Api.Contracts;
+﻿using System.Text.Json;
+using IncidentHub.Api.Contracts;
 using IncidentHub.Api.Infrastructure.Data;
 using MediatR;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace IncidentHub.Api.Features.Users.Queries.GetUsersByRole;
 

@@ -1,4 +1,8 @@
-﻿using Microsoft.AspNetCore.Authentication;
+﻿using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.OpenApi;
 
@@ -37,17 +41,18 @@ internal sealed class BearerSecuritySchemeTransformer(
             // Add the scheme to the document components
             document.AddComponent("Bearer", bearerScheme);
 
-            // Create a security requirement referencing the scheme
+            // Create a security requirement referencing the scheme (use explicit list)
             var securityRequirement = new OpenApiSecurityRequirement
             {
-                [new OpenApiSecuritySchemeReference("Bearer", document)] = []
+                [new OpenApiSecuritySchemeReference("Bearer", document)] = new List<string>()
             };
 
-            // Apply the requirement to all operations
-            foreach (var operation in document.Paths.Values.SelectMany(p => p.Operations))
+            // Safely enumerate path items and operations (handle possible nulls)
+            var pathItems = document.Paths?.Values ?? Enumerable.Empty<IOpenApiPathItem>();
+            foreach (var operation in pathItems.SelectMany(p => p.Operations?.Values ?? Enumerable.Empty<OpenApiOperation>()))
             {
-                operation.Value.Security ??= new List<OpenApiSecurityRequirement>();
-                operation.Value.Security.Add(securityRequirement);
+                operation.Security ??= new List<OpenApiSecurityRequirement>();
+                operation.Security.Add(securityRequirement);
             }
         }
     }

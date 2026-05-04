@@ -1,4 +1,3 @@
-using IncidentHub.Api.Constants;
 using MediatR;
 using Serilog.Context;
 
