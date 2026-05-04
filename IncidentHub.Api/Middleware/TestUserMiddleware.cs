@@ -47,6 +47,7 @@ public class TestUserMiddleware
         {
             "admin" =>
             [
+                Permissions.AssignIncidents,
                 Permissions.ManageIncidents,
                 Permissions.ReadIncidents,
                 Permissions.ReadUsers
@@ -54,11 +55,13 @@ public class TestUserMiddleware
             "responder" =>
             [
                 Permissions.ManageIncidents,
-                Permissions.ReadIncidents
+                Permissions.ReadIncidents,
+                Permissions.ReadUsers
             ],
             "viewer" =>
             [
-                Permissions.ReadIncidents
+                Permissions.ReadIncidents,
+                Permissions.ReadUsers
             ],
             _ => []
         };

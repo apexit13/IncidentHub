@@ -11,7 +11,6 @@ using IncidentHub.Api.Features.Users.Queries.GetUserById;
 using IncidentHub.Api.Features.Users.Queries.GetUsersByRole;
 using IncidentHub.Api.Hubs;
 using IncidentHub.Api.Infrastructure.Data;
-using IncidentHub.Api.Infrastructure.Security;
 using IncidentHub.Api.Infrastructure.Services;
 using IncidentHub.Api.Middleware;
 using MediatR;
@@ -43,20 +42,10 @@ try
         }
     });
 
-
-
-    if (builder.Environment.IsDevelopment())
-    {
-        // Add Bearer Auth section to OpenAPI document for testing without manual copy/paste of dev tokens each time
-        builder.Services.AddOpenApi(options =>
-        {
-            options.AddDocumentTransformer<BearerSecuritySchemeTransformer>();
-        });
-    }
-
     builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
     builder.Services.AddScoped<IUserDisplayNameService, UserDisplayNameService>();
 
+    builder.Services.AddOpenApi();
     builder.Services.AddHttpContextAccessor();
     builder.Services.AddMediatR(typeof(Program));
     builder.Services.ConfigureHttpJsonOptions(options =>
@@ -129,24 +118,13 @@ try
     if (app.Environment.IsDevelopment())
     {
         // Mock middleware stays active in Development so we can still test
-        // locally via Scalar with the X-Role header — no Auth0 token needed.
+        // locally via Scalar with the X-Permissions header — no Auth0 token needed.
         app.UseMiddleware<TestUserMiddleware>();
 
         app.MapOpenApi();
         app.MapScalarApiReference(options =>
         {
             options.Title = "IncidentHub API";
-            options.Theme = ScalarTheme.DeepSpace;
-
-            // Read the dev token from appsettings.Development.json so we
-            // never have to paste it manually into Scalar
-            var devToken = builder.Configuration["Scalar:DevToken"] ?? string.Empty;
-
-            options.AddPreferredSecuritySchemes("Bearer");
-            options.AddHttpAuthentication("Bearer", auth =>
-            {
-                auth.Token = devToken;
-            });
         });
 
         // Seed database in development
