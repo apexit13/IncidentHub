@@ -1,1 +1,102 @@
 # IncidentHub
+
+A real-time incident management system built with .NET, React, and SignalR.
+
+## 🚀 Features
+
+- Real-time incident tracking with SignalR
+- Role-based access control (Admin, Responder, Viewer)
+- Incident lifecycle management (New → Investigating → Identified → Monitoring → Resolved)
+- Assignment tracking with user management
+- Timeline history for all incident changes
+- Responsive web interface
+
+## 🏗️ Architecture
+
+- **Frontend**: React 19 with TypeScript
+- **Backend**: .NET 10 Web API with CQRS pattern
+- **Real-time**: SignalR for live updates
+- **Authentication**: Auth0 integration
+- **Database**: SQL Server
+- **State Management**: React Query + TanStack Query
+
+## 📦 Key Components
+
+### Backend
+- MediatR for CQRS implementation
+- FluentValidation for request validation
+- Entity Framework Core for data access
+- Clean architecture with separate features
+
+### Frontend
+- Custom UI components (Severity badges, Status indicators)
+- Real-time connection status monitoring
+- User assignment dropdown with role-based filtering
+- Toast notifications for user feedback
+
+## 🔧 Getting Started
+
+### Prerequisites
+- .NET 10 SDK
+- Node.js 18+
+- SQL Server
+- Auth0 account
+
+### Backend Setup
+1. Clone the repository
+2. Configure appsettings.json with your Auth0 and database settings
+3. Run `dotnet restore` and `dotnet run`
+
+### Frontend Setup
+1. Navigate to client directory
+2. Run `npm install`
+3. Run `npm run dev`
+
+## 📊 Sample Data
+Development environment includes 6 pre-populated sample incidents with complete timeline histories for testing all features.
+
+## 🔐 Auth0 Setup
+
+### Applications
+- **Regular Web Application** for your frontend
+- **Machine-to-Machine Application** for backend Auth0 API access to user data
+
+### Roles & Permissions
+- **Admin**: `read:incidents`, `create:incidents`, `manage:incidents`, `assign:incidents`, `read:users`
+- **Responder**: `read:incidents`, `manage:incidents`, `read:users`
+- **Viewer**: `read:incidents`, `read:users`
+
+### API Configuration
+1. Create an API in Auth0 with identifier matching your `Auth0:Audience`
+2. Enable RBAC and Add Permissions in the Access Token
+3. Create roles and assign permissions
+4. Assign users to roles
+
+### Test Users
+Use `X-Permissions` header in development for role simulation
+
+## 🛠️ Development
+
+### Key Commands
+```bash
+# Backend
+dotnet watch run
+
+# Frontend
+npm run dev
+```
+
+## 📚 API Documentation
+API documentation available via Scalar at `/scalar/v1`
+
+## 📄 License
+MIT License
+
+## 👤 Author
+Apex IT
+
+## 🙏 Acknowledgments
+- Built as a demonstration of modern .NET + React development
+- Showcases CQRS pattern implementation
+- Real-time capabilities with SignalR
+
