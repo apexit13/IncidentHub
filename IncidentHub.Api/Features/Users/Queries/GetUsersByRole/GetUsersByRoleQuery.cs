@@ -30,7 +30,7 @@ public class GetUsersByRoleQueryHandler(
                 string.IsNullOrEmpty(clientId) ||
                 string.IsNullOrEmpty(clientSecret))
             {
-                throw new Exception("Auth0 configuration is missing required values");
+                throw new Exception($"Auth0 Missing - Domain: {domain ?? "NULL"}, ClientId: {clientId ?? "NULL"}, ClientSecret: {"DummySecret" ?? "NULL"}");
             }
 
             // Get management API token
