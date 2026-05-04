@@ -50,7 +50,7 @@ export function IncidentDetailPanel({ incident, onClose, onStatusChange, onResol
           {[
             ["Created", timeAgo(incident.createdAt)],
             ["Resolved", incident.resolvedAt ? timeAgo(incident.resolvedAt) : "—"],
-            ["ID", incident.id.slice(0, 8) + "…"],
+            ["ID", "…" + incident.id.slice(-8)],
           ].map(([k, v]) => (
             <div key={k} className="wrap-break-word">
               <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">{k}</div>
