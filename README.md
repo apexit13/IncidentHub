@@ -42,6 +42,25 @@ A real-time incident management system built with .NET, React, and SignalR.
 - SQL Server
 - Auth0 account
 
+### Configuration
+Create `appsettings.development.json` with the following structure:
+```json
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Server=localhost;Database=IncidentHub;Trusted_Connection=true;TrustServerCertificate=true;"
+  },
+  "Auth0": {
+    "Domain": "your-domain.auth0.com",
+    "Audience": "your-api-identifier",
+    "ClientId": "your-auth0-management-application-client-id",
+    "ClientSecret": "your-auth0-management-application-client-secret"
+  },
+  "TestUser": {
+    "DefaultPermissionSet": "admin"
+  }
+}
+```
+
 ### Backend Setup
 1. Clone the repository
 2. Configure appsettings.json with your Auth0 and database settings
@@ -66,6 +85,9 @@ Development environment includes 6 pre-populated sample incidents with complete 
 - **Responder**: `read:incidents`, `manage:incidents`, `read:users`
 - **Viewer**: `read:incidents`, `read:users`
 
+### Authorization Model
+All roles require `read:users` permission to access user information endpoints. This ensures consistent access to responder names and assignment features across all user roles.
+
 ### API Configuration
 1. Create an API in Auth0 with identifier matching your `Auth0:Audience`
 2. Enable RBAC and Add Permissions in the Access Token
@@ -85,18 +107,13 @@ dotnet watch run
 # Frontend
 npm run dev
 ```
+### URL
+`http://localhost:5173`
 
 ## 📚 API Documentation
-API documentation available via Scalar at `/scalar/v1`
-
-## 📄 License
-MIT License
+API documentation available via Scalar at `https://localhost:7125/scalar/v1`
 
 ## 👤 Author
-Apex IT
+ApexIT13
 
-## 🙏 Acknowledgments
-- Built as a demonstration of modern .NET + React development
-- Showcases CQRS pattern implementation
-- Real-time capabilities with SignalR
 
