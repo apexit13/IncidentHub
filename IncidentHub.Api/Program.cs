@@ -14,7 +14,9 @@ using IncidentHub.Api.Infrastructure.Data;
 using IncidentHub.Api.Infrastructure.Services;
 using IncidentHub.Api.Middleware;
 using MediatR;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.InMemory;
 using Scalar.AspNetCore;
 using Serilog;
 using static IncidentHub.Api.Constants.AuthPolicies;
@@ -54,7 +56,7 @@ try
     });
     builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(LoggingBehaviour<,>));
     builder.Services.AddValidatorsFromAssemblyContaining<Program>();
-    if (!builder.Environment.IsDevelopment())
+    if (!builder.Environment.IsDevelopment() && !builder.Environment.IsEnvironment("Testing"))
     {
         // Only add Application Insights in non-development environments to avoid polluting telemetry with dev/test data 
         builder.Services.AddApplicationInsightsTelemetry();
@@ -70,10 +72,25 @@ try
         signalR.AddAzureSignalR(azureSignalRConnectionString);
     }
 
-    builder.Services.AddDbContext<AppDbContext>(o =>
-        o.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    if (builder.Environment.IsEnvironment("Testing"))
+    {
+        var dbName = builder.Configuration["TestDbName"] ?? "DefaultTestDb";
 
-    builder.Services.AddAuthentication().AddJwtBearer(o =>
+        builder.Services.AddDbContext<AppDbContext>(o =>
+            o.UseInMemoryDatabase(dbName));
+    }
+    else
+    {
+        builder.Services.AddDbContext<AppDbContext>(o =>
+            o.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    }
+
+    builder.Services.AddAuthentication(options =>
+    {
+        options.DefaultAuthenticateScheme = "Bearer";
+        options.DefaultChallengeScheme = "Bearer";
+    })
+    .AddJwtBearer("Bearer", o =>
     {
         o.Authority = $"https://{builder.Configuration["Auth0:Domain"]}/";
         o.Audience = builder.Configuration["Auth0:Audience"];
@@ -115,23 +132,21 @@ try
 
     var app = builder.Build();
 
+    // ── Development only ─────────────────────────────
     if (app.Environment.IsDevelopment())
     {
         // Mock middleware stays active in Development so we can still test
         // locally via Scalar with the X-Permissions header — no Auth0 token needed.
         app.UseMiddleware<TestUserMiddleware>();
-
-        app.MapOpenApi();
-        app.MapScalarApiReference(options =>
-        {
+        app.MapOpenApi(); 
+        app.MapScalarApiReference(options =>        {
             options.Title = "IncidentHub API";
         });
 
-        // Seed database in development
         using var scope = app.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        await db.Database.MigrateAsync();   // runs any pending migrations
-        await SeedData.SeedAsync(db);       // seeds if empty
+        await db.Database.MigrateAsync();
+        await SeedData.SeedAsync(db);
     }
 
     app.UseMiddleware<ExceptionHandlingMiddleware>();

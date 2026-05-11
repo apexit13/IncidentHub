@@ -113,7 +113,43 @@ npm run dev
 ## 📚 API Documentation
 API documentation available via Scalar at `https://localhost:7125/scalar/v1`
 
+## 🧪 Testing
+
+### Unit Tests
+Comprehensive unit tests covering:
+- Command handlers (Create, Assign, Resolve, Update Status)
+- Query handlers (Get Incidents, Get Incident by ID)
+- Validation logic
+- Business rule enforcement
+
+### Integration Tests
+- Full API endpoint testing
+- Authentication/Authorization validation
+- End-to-end workflow testing
+
+### Test Architecture
+- **In-memory database** for fast unit tests
+- **TestUserMiddleware** integration for authorization testing
+- **Mock services** for isolation
+- **FluentAssertions** for readable test assertions
+- **xUnit** as the testing framework
+- **Moq** for mocking dependencies
+- **Entity Framework Core In-Memory** for database testing
+
+### Running Tests
+
+```bash
+# Run all tests
+dotnet test
+
+# Run tests with code coverage
+dotnet test --collect:"XPlat Code Coverage"
+
+# Run specific test category
+dotnet test --filter "Category=Unit"
+```
+
 ## 👤 Author
-ApexIT13
+Apexit13
 
 
