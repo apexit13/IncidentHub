@@ -8,7 +8,6 @@ namespace IncidentHub.Api.Features.Users.Queries.GetUserById;
 public record GetUserByIdQuery(string UserId) : IRequest<UserDto?>;
 
 public class GetUserByIdQueryHandler(
-        AppDbContext db,
         ILogger<GetUserByIdQueryHandler> logger,
         IConfiguration configuration)
         : IRequestHandler<GetUserByIdQuery, UserDto?>
@@ -35,13 +34,13 @@ public class GetUserByIdQueryHandler(
             // Get management API token
             using var client = new HttpClient();
             var tokenResponse = await client.PostAsync($"https://{domain}/oauth/token",
-                new FormUrlEncodedContent(new[]
-                {
+                new FormUrlEncodedContent(
+                [
                     new KeyValuePair<string, string>("client_id", clientId),
                     new KeyValuePair<string, string>("client_secret", clientSecret),
                     new KeyValuePair<string, string>("audience", $"https://{domain}/api/v2/"),
                     new KeyValuePair<string, string>("grant_type", "client_credentials")
-                }), ct);
+                ]), ct);
 
             var tokenContent = await tokenResponse.Content.ReadAsStringAsync(ct);
             var options = new JsonSerializerOptions

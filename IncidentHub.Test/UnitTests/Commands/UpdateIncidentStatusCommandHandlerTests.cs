@@ -37,7 +37,7 @@ public class UpdateIncidentStatusCommandHandlerTests
 
         var incident = TestDataFactory.CreateIncident(status: IncidentStatus.New);
         context.Incidents.Add(incident);
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         var handler = new UpdateIncidentStatusCommandHandler(
             context,
@@ -58,11 +58,11 @@ public class UpdateIncidentStatusCommandHandlerTests
         result.Status.Should().Be("Investigating");
 
         // Verify incident was updated in database
-        var updatedIncident = await context.Incidents.FindAsync(incident.Id);
+        var updatedIncident = await context.Incidents.FindAsync([incident.Id], TestContext.Current.CancellationToken);
         updatedIncident!.Status.Should().Be(IncidentStatus.Investigating);
 
         // Verify timeline entry was created
-        var timelineEntry = await context.IncidentTimelines.FirstOrDefaultAsync();
+        var timelineEntry = await context.IncidentTimelines.FirstOrDefaultAsync(TestContext.Current.CancellationToken);
         timelineEntry.Should().NotBeNull();
         timelineEntry!.NewStatus.Should().Be(IncidentStatus.Investigating);
         timelineEntry.Message.Should().Contain("Investigating now");

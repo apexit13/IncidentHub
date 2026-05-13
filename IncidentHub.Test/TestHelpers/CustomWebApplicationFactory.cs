@@ -3,7 +3,6 @@ using System.Text.Encodings.Web;
 using IncidentHub.Api.Infrastructure.Data;
 using IncidentHub.Api.Infrastructure.Services;
 using IncidentHub.Tests.Infrastructure.Auth;
-using IncidentHub.Tests.TestHelpers;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -15,107 +14,103 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-public class CustomWebApplicationFactory : WebApplicationFactory<Program>
+namespace IncidentHub.Tests.TestHelpers
 {
-    private readonly string _dbName = Guid.NewGuid().ToString();
-
-    protected override void ConfigureWebHost(IWebHostBuilder builder)
+    public class CustomWebApplicationFactory : WebApplicationFactory<Program>
     {
-        builder.UseEnvironment("Testing");
+        private readonly string _dbName = Guid.NewGuid().ToString();
 
-        builder.ConfigureTestServices(services =>
+        protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
-            services.RemoveAll<DbContextOptions<AppDbContext>>();
-            services.RemoveAll<AppDbContext>();
+            builder.UseEnvironment("Testing");
 
-            services.AddDbContext<AppDbContext>(options =>
+            builder.ConfigureTestServices(services =>
             {
-                options.UseInMemoryDatabase(_dbName);
+                services.RemoveAll<DbContextOptions<AppDbContext>>();
+                services.RemoveAll<AppDbContext>();
+
+                services.AddDbContext<AppDbContext>(options =>
+                {
+                    options.UseInMemoryDatabase(_dbName);
+                });
+
+                services.AddScoped<IDataSeeder, TestDataSeeder>();
+
+                services.AddAuthentication(options =>
+                {
+                    options.DefaultAuthenticateScheme = TestAuthHandler.SchemeName;
+                    options.DefaultChallengeScheme = TestAuthHandler.SchemeName;
+                })
+                .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>(
+                    TestAuthHandler.SchemeName, _ => { });
             });
-
-            services.AddScoped<IDataSeeder, TestDataSeeder>();
-
-            services.AddAuthentication(options =>
-            {
-                options.DefaultAuthenticateScheme = TestAuthHandler.SchemeName;
-                options.DefaultChallengeScheme = TestAuthHandler.SchemeName;
-            })
-            .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>(
-                TestAuthHandler.SchemeName, _ => { });
-        });
-    }
-    // Test implementation of ICurrentUserService
-    public class TestCurrentUserService : ICurrentUserService
-    {
-        public string UserId => "test-user-id";
-        public string UserName => "Test User";
-        public string UserEmail => "test@example.com";
-        public string Nickname => "tester";
-        public string Picture => null;
-        public bool IsAuthenticated => true;
-    }
-
-    // Test implementation of IUserDisplayNameService
-    public class TestUserDisplayNameService : IUserDisplayNameService
-    {
-        public Task<string> GetDisplayNameAsync(string userId)
-        {
-            return Task.FromResult("Test User");
         }
-    }
-
-    // Add a simple data seeder for tests that uses TestDataFactory
-    public interface IDataSeeder
-    {
-        Task SeedAsync();
-    }
-
-    public class TestDataSeeder : IDataSeeder
-    {
-        private readonly AppDbContext _context;
-
-        public TestDataSeeder(AppDbContext context)
+        // Test implementation of ICurrentUserService
+        public class TestCurrentUserService : ICurrentUserService
         {
-            _context = context;
+            public string UserId => "test-user-id";
+            public string UserName => "Test User";
+            public string UserEmail => "test@example.com";
+            public string Nickname => "tester";
+            public string? Picture => null;
+            public bool IsAuthenticated => true;
         }
 
-        public async Task SeedAsync()
+        // Test implementation of IUserDisplayNameService
+        public class TestUserDisplayNameService : IUserDisplayNameService
         {
-            await _context.Database.EnsureCreatedAsync();
-
-            // Use TestDataFactory to create test incidents
-            if (!_context.Incidents.Any())
+            public Task<string> GetDisplayNameAsync(string userId)
             {
-                var incident1 = TestDataFactory.CreateIncident(
-                    "Critical Server Outage",
-                    Severity.Critical,
-                    IncidentStatus.New,
-                    "responder1");
+                return Task.FromResult("Test User");
+            }
+        }
 
-                var incident2 = TestDataFactory.CreateIncident(
-                    "Network Performance Issue",
-                    Severity.Medium,
-                    IncidentStatus.Identified,
-                    "responder2");
+        // Add a simple data seeder for tests that uses TestDataFactory
+        public interface IDataSeeder
+        {
+            Task SeedAsync();
+        }
 
-                var incident3 = TestDataFactory.CreateIncident(
-                    "Database Connection Failure",
-                    Severity.High,
-                    IncidentStatus.Resolved,
-                    "responder1");
+        public class TestDataSeeder(AppDbContext context) : IDataSeeder
+        {
+            public async Task SeedAsync()
+            {
+                await context.Database.EnsureCreatedAsync();
 
-                _context.Incidents.AddRange(incident1, incident2, incident3);
+                // Use TestDataFactory to create test incidents
+                if (!context.Incidents.Any())
+                {
+                    var incident1 = TestDataFactory.CreateIncident(
+                        "Critical Server Outage",
+                        Severity.Critical,
+                        IncidentStatus.New,
+                        "responder1");
 
-                // Add timeline entries for each incident
-                _context.IncidentTimelines.AddRange(
-                    TestDataFactory.CreateTimelineEntry(incident1.Id, "Incident reported by monitoring system", "system"),
-                    TestDataFactory.CreateTimelineEntry(incident1.Id, "Investigation started", "responder1"),
-                    TestDataFactory.CreateTimelineEntry(incident2.Id, "Performance degradation detected", "system"),
-                    TestDataFactory.CreateTimelineEntry(incident2.Id, "Team assigned to investigate", "responder2"),
-                    TestDataFactory.CreateTimelineEntry(incident3.Id, "Database connection restored", "responder1", IncidentStatus.Resolved)
-                );
+                    var incident2 = TestDataFactory.CreateIncident(
+                        "Network Performance Issue",
+                        Severity.Medium,
+                        IncidentStatus.Identified,
+                        "responder2");
 
-                await _context.SaveChangesAsync();
+                    var incident3 = TestDataFactory.CreateIncident(
+                        "Database Connection Failure",
+                        Severity.High,
+                        IncidentStatus.Resolved,
+                        "responder1");
+
+                    context.Incidents.AddRange(incident1, incident2, incident3);
+
+                    // Add timeline entries for each incident
+                    context.IncidentTimelines.AddRange(
+                        TestDataFactory.CreateTimelineEntry(incident1.Id, "Incident reported by monitoring system", "system"),
+                        TestDataFactory.CreateTimelineEntry(incident1.Id, "Investigation started", "responder1"),
+                        TestDataFactory.CreateTimelineEntry(incident2.Id, "Performance degradation detected", "system"),
+                        TestDataFactory.CreateTimelineEntry(incident2.Id, "Team assigned to investigate", "responder2"),
+                        TestDataFactory.CreateTimelineEntry(incident3.Id, "Database connection restored", "responder1", IncidentStatus.Resolved)
+                    );
+
+                    await context.SaveChangesAsync();
+                }
             }
         }
     }

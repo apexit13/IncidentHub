@@ -19,7 +19,7 @@ public record AssignIncidentCommand(
     public Guid Id { get; init; }
 }
 
-public class AssignIncidentCommandHandler(
+public partial class AssignIncidentCommandHandler(
     AppDbContext db,
     IHubContext<IncidentBroadcastHub> hub,
     ICurrentUserService currentUserService,
@@ -27,12 +27,24 @@ public class AssignIncidentCommandHandler(
     ILogger<AssignIncidentCommandHandler> logger)
     : IRequestHandler<AssignIncidentCommand, IncidentDto>
 {
+    [LoggerMessage(Level = LogLevel.Information, Message = "Assigning incident {Id} to {AssignedTo}")]
+    private static partial void LogAssigning(ILogger logger, Guid id, string? assignedTo);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Incident {Id} assigned and broadcast successfully")]
+    private static partial void LogAssigned(ILogger logger, Guid id);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "SignalR broadcast failed for incident {Id}")]
+    private static partial void LogBroadcastFailed(ILogger logger, Exception ex, Guid id);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Failed to assign incident {Id}")]
+    private static partial void LogFailed(ILogger logger, Exception ex, Guid id);
+
     public async Task<IncidentDto> Handle(
         AssignIncidentCommand request, CancellationToken ct)
     {
         try
         {
-            logger.LogInformation("Assigning incident {Id} to {AssignedTo}", request.Id, request.AssignedTo ?? "Unassigned");
+            LogAssigning(logger, request.Id, request.AssignedTo);
 
             var incident = await db.Incidents
                 .FirstOrDefaultAsync(i => i.Id == request.Id, ct)
@@ -63,30 +75,25 @@ public class AssignIncidentCommandHandler(
 
             await db.SaveChangesAsync(ct);
 
-            // Map to DTOs using ToDto() methods
-            // Use a with-expression to set the init-only AssignedTo property
             var incidentDto = incident.ToDto() with { AssignedTo = request.AssignedTo };
-
             var timelineEntryDto = timelineEntry.ToDto();
 
-            // Broadcast both events
             try
             {
                 await hub.Clients.All.SendAsync("IncidentUpdated", incidentDto, ct);
                 await hub.Clients.All.SendAsync("TimelineEntryAdded", timelineEntryDto, ct);
-                logger.LogInformation("Incident {Id} assigned and broadcast successfully", incident.Id);
+                LogAssigned(logger, incident.Id);
             }
             catch (Exception ex)
             {
-                logger.LogWarning(ex,
-                    "SignalR broadcast failed for incident {Id}", incident.Id);
+                LogBroadcastFailed(logger, ex, incident.Id);
             }
 
             return incidentDto;
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Failed to assign incident {Id}", request.Id);
+            LogFailed(logger, ex, request.Id);
             throw;
         }
     }

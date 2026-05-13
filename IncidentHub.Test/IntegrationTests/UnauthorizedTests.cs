@@ -4,14 +4,9 @@ using IncidentHub.Tests.TestHelpers;
 
 namespace IncidentHub.Tests.IntegrationTests;
 
-public class UnauthorizedTests : IClassFixture<IncidentHubTestFactory>
+public class UnauthorizedTests(IncidentHubTestFactory factory) : IClassFixture<IncidentHubTestFactory>
 {
-    private readonly HttpClient _client;
-
-    public UnauthorizedTests(IncidentHubTestFactory factory)
-    {
-        _client = factory.CreateClient();
-    }
+    private readonly HttpClient _client = factory.CreateClient();
 
     [Theory]
     [InlineData("/api/incidents", "GET")]
@@ -21,7 +16,7 @@ public class UnauthorizedTests : IClassFixture<IncidentHubTestFactory>
         _client.DefaultRequestHeaders.Clear();
         var request = new HttpRequestMessage(new HttpMethod(method), url);
 
-        var response = await _client.SendAsync(request);
+        var response = await _client.SendAsync(request, TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
@@ -39,7 +34,7 @@ public class UnauthorizedTests : IClassFixture<IncidentHubTestFactory>
                 System.Text.Encoding.UTF8, "application/json");
         }
 
-        var response = await _client.SendAsync(request);
+        var response = await _client.SendAsync(request, TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }

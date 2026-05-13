@@ -96,24 +96,17 @@ try
         o.Audience = builder.Configuration["Auth0:Audience"];
     });
 
-    builder.Services.AddAuthorization(options =>
-    {
-        // API validates the "permissions" claim found in the Access Token
-        options.AddPolicy(Policies.CanReadIncidents, policy =>
-            policy.RequireClaim("permissions", Permissions.ReadIncidents));
-
-        options.AddPolicy(Policies.CanCreateIncidents, policy =>
-            policy.RequireClaim("permissions", Permissions.CreateIncidents));
-
-        options.AddPolicy(Policies.CanManageIncidents, policy =>
-            policy.RequireClaim("permissions", Permissions.ManageIncidents));
-
-        options.AddPolicy(Policies.CanAssignIncidents, policy =>
-            policy.RequireClaim("permissions", Permissions.AssignIncidents));
-
-        options.AddPolicy(Policies.CanReadUsers, policy =>
+    builder.Services.AddAuthorizationBuilder()
+        .AddPolicy(Policies.CanReadIncidents, policy =>
+            policy.RequireClaim("permissions", Permissions.ReadIncidents))
+        .AddPolicy(Policies.CanCreateIncidents, policy =>
+            policy.RequireClaim("permissions", Permissions.CreateIncidents))
+        .AddPolicy(Policies.CanManageIncidents, policy =>
+            policy.RequireClaim("permissions", Permissions.ManageIncidents))
+        .AddPolicy(Policies.CanAssignIncidents, policy =>
+            policy.RequireClaim("permissions", Permissions.AssignIncidents))
+        .AddPolicy(Policies.CanReadUsers, policy =>
             policy.RequireClaim("permissions", Permissions.ReadUsers));
-    });
 
     // CORS is just implemented for local dev.
     // For production, Azure configures CORS in front of the API to only allow specific clients

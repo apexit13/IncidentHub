@@ -8,7 +8,6 @@ namespace IncidentHub.Api.Features.Users.Queries.GetUsersByRole;
 public record GetUsersByRoleQuery(string Role) : IRequest<IReadOnlyList<UserDto>>;
 
 public class GetUsersByRoleQueryHandler(
-    AppDbContext db,
     ILogger<GetUsersByRoleQueryHandler> logger,
     IConfiguration configuration)
     : IRequestHandler<GetUsersByRoleQuery, IReadOnlyList<UserDto>>
@@ -35,13 +34,13 @@ public class GetUsersByRoleQueryHandler(
             // Get management API token
             using var client = new HttpClient();
             var tokenResponse = await client.PostAsync($"https://{domain}/oauth/token",
-                new FormUrlEncodedContent(new[]
-                {
+                new FormUrlEncodedContent(
+                [
                     new KeyValuePair<string, string>("client_id", clientId),
                     new KeyValuePair<string, string>("client_secret", clientSecret),
                     new KeyValuePair<string, string>("audience", $"https://{domain}/api/v2/"),
                     new KeyValuePair<string, string>("grant_type", "client_credentials")
-                }), ct);
+                ]), ct);
 
             var tokenContent = await tokenResponse.Content.ReadAsStringAsync(ct);
             var options = new JsonSerializerOptions
@@ -68,7 +67,7 @@ public class GetUsersByRoleQueryHandler(
             if (role == null || string.IsNullOrEmpty(role.Id))
             {
                 logger.LogWarning("Role {Role} not found in Auth0", request.Role);
-                return new List<UserDto>();
+                return [];
             }
 
             // Then, get all users for that role
@@ -87,7 +86,7 @@ public class GetUsersByRoleQueryHandler(
                     Nickname = !string.IsNullOrEmpty(u.Nickname) ? u.Nickname : u.Email ?? "Unknown",
                     Email = u.Email ?? string.Empty,
                     Picture = u.Picture
-                }).ToList() ?? new List<UserDto>();
+                }).ToList() ?? [];
 
             logger.LogInformation("Retrieved {Count} users with role {Role} from Auth0", userDtos.Count, request.Role);
             return userDtos;

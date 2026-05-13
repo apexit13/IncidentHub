@@ -37,7 +37,7 @@ public static class TestDataFactory
         };
     }
 
-    public static UserDto CreateTestUser(string role = "admin")
+    public static UserDto CreateTestUser()
     {
         return new UserDto
         {

@@ -15,8 +15,8 @@ public class GetIncidentsQueryHandlerTests
         _logger = new NullLogger<GetIncidentsQueryHandler>();
     }
 
-    private AppDbContext CreateContext() =>
-    new AppDbContext(new DbContextOptionsBuilder<AppDbContext>()
+    private static AppDbContext CreateContext() =>
+    new(new DbContextOptionsBuilder<AppDbContext>()
         .UseInMemoryDatabase(Guid.NewGuid().ToString())
         .Options);
 
@@ -86,7 +86,7 @@ public class GetIncidentsQueryHandlerTests
 
         // Assert
         result.Should().HaveCount(1);
-        var dto = result.First();
+        var dto = result[0];
         dto.Title.Should().Be("Test Incident");
         dto.Severity.Should().Be("High");
         dto.Status.Should().Be("Investigating");

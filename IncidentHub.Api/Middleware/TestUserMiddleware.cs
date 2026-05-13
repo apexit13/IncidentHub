@@ -4,22 +4,13 @@ using static IncidentHub.Api.Constants.AuthPolicies;
 
 namespace IncidentHub.Api.Middleware;
 
-public class TestUserMiddleware
+public class TestUserMiddleware(RequestDelegate next, IConfiguration config)
 {
-    private readonly RequestDelegate _next;
-    private readonly IConfiguration _config;
-
-    public TestUserMiddleware(RequestDelegate next, IConfiguration config)
-    {
-        _next = next;
-        _config = config;
-    }
-
     public async Task InvokeAsync(HttpContext context)
     {
         var permissionSet = context.Request.Headers["X-Permissions"].ToString();
         if (string.IsNullOrEmpty(permissionSet))
-            permissionSet = _config["TestUser:DefaultPermissionSet"] ?? "admin";
+            permissionSet = config["TestUser:DefaultPermissionSet"] ?? "admin";
 
         var permissions = GetPermissionsForSet(permissionSet);
 
@@ -39,7 +30,7 @@ public class TestUserMiddleware
         var identity = new ClaimsIdentity(claims, "TestUser");
         context.User = new ClaimsPrincipal(identity);
 
-        await _next(context);
+        await next(context);
     }
     private static string[] GetPermissionsForSet(string permissionSet)
     {
