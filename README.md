@@ -11,6 +11,66 @@ A real-time incident management system built with .NET, React, and SignalR.
 - Timeline history for all incident changes
 - Responsive web interface
 
+## 📸 Screenshots
+
+### Incident Dashboard
+<p align="center">
+  <img src="./.github/screenshots/dashboard.png" alt="Incident Dashboard showing list of incidents with severity badges and status filters" width="800"/>
+</p>
+
+The dashboard provides a view of all incidents with filtering by status, severity, and assignment. Critical incidents are highlighted for immediate attention.
+
+---
+
+### Incident Detail View
+<p align="center">
+  <img src="./.github/screenshots/incident-detail.png" alt="Incident detail view with timeline and metadata" width="400"/>
+</p>
+
+Each incident displays full details including description, severity, current status, assigned responder, and a complete timeline of all status changes and updates.
+
+---
+
+### Create New Incident
+<p align="center">
+  <img src="./.github/screenshots/create-incident.png" alt="Create incident form with title, description, and severity fields" width="400"/>
+</p>
+
+Creating an incident is straightforward — provide a title, description, and severity level. The incident is automatically assigned a "New" status and tracked to the creator.
+
+---
+
+### Incident Timeline
+<p align="center">
+  <img src="./.github/screenshots/timeline.png" alt="Incident timeline showing status changes and updates" width="400"/>
+</p>
+
+A full audit trail is maintained for every incident. Each status change, assignment, and resolution is recorded with the user who made the change and when.
+
+---
+
+### Role-Based Access Control
+<p align="center">
+  <strong>Viewer</strong> — Read-only access<br/>
+  <img src="./.github/screenshots/viewer-header.png" width="400"/><br/>
+  <img src="./.github/screenshots/viewer-incident-details.png" width="400"/><br/><br/>
+  &nbsp;&nbsp;
+  <strong>Admin</strong> — Full management capabilities<br/>
+  <img src="./.github/screenshots/admin-header.png" width="400"/><br/>
+  <img src="./.github/screenshots/admin-incident-details.png" width="400"/>
+</p>
+
+IncidentHub enforces fine-grained permissions. Viewers can read incidents, responders can create and update, and admins have full management capabilities.
+
+---
+
+### Real-Time Updates
+<p align="center">
+  <img src="./.github/screenshots/realtime-demo.gif" alt="Real-time incident updates via SignalR" width="800"/>
+</p>
+
+Incident changes are broadcast in real-time to all connected users via SignalR, ensuring the dashboard stays current without manual refreshes.
+
 ## 🏗️ Architecture
 
 - **Frontend**: React 19 with TypeScript
