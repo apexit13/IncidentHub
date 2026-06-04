@@ -21,6 +21,7 @@ public class GetIncidentsQueryHandlerTests
         .Options);
 
     [Fact]
+    [Trait("Category", "Unit")]
     public async Task Handle_ReturnsAllIncidents()
     {
         // Arrange
@@ -47,6 +48,7 @@ public class GetIncidentsQueryHandlerTests
     }
 
     [Fact]
+    [Trait("Category", "Unit")]
     public async Task Handle_EmptyDatabase_ReturnsEmptyList()
     {
         // Arrange
@@ -64,6 +66,7 @@ public class GetIncidentsQueryHandlerTests
     }
 
     [Fact]
+    [Trait("Category", "Unit")]
     public async Task Handle_ReturnsIncidentsWithCorrectMappings()
     {
         // Arrange

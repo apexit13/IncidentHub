@@ -13,6 +13,7 @@ public class CreateIncidentCommandValidatorTests
     }
 
     [Fact]
+    [Trait("Category", "Validation")]
     public void Validate_ValidCommand_ShouldNotHaveValidationError()
     {
         // Arrange
@@ -29,6 +30,7 @@ public class CreateIncidentCommandValidatorTests
     }
 
     [Fact]
+    [Trait("Category", "Validation")]
     public void Validate_TitleIsEmpty_ShouldHaveValidationError()
     {
         // Arrange
@@ -46,6 +48,7 @@ public class CreateIncidentCommandValidatorTests
     }
 
     [Fact]
+    [Trait("Category", "Validation")]
     public void Validate_TitleTooLong_ShouldHaveValidationError()
     {
         // Arrange
@@ -63,6 +66,7 @@ public class CreateIncidentCommandValidatorTests
     }
 
     [Fact]
+    [Trait("Category", "Validation")]
     public void Validate_ValidSeverity_ShouldNotHaveValidationError()
     {
         // Arrange
@@ -79,6 +83,7 @@ public class CreateIncidentCommandValidatorTests
     }
 
     [Fact]
+    [Trait("Category", "Validation")]
     public void Validate_InvalidSeverity_ShouldHaveValidationError()
     {
         // Arrange

@@ -30,6 +30,7 @@ public class UpdateIncidentStatusCommandHandlerTests
     }
 
     [Fact]
+    [Trait("Category", "Unit")]
     public async Task Handle_ValidCommand_UpdatesStatusAndCreatesTimeline()
     {
         // Arrange
@@ -69,6 +70,7 @@ public class UpdateIncidentStatusCommandHandlerTests
     }
 
     [Theory]
+    [Trait("Category", "Unit")]
     [InlineData(IncidentStatus.New)]
     [InlineData(IncidentStatus.Investigating)]
     [InlineData(IncidentStatus.Identified)]
@@ -102,6 +104,7 @@ public class UpdateIncidentStatusCommandHandlerTests
     }
 
     [Fact]
+    [Trait("Category", "Unit")]
     public void Validator_RejectsResolvedStatus()
     {
         var validator = new UpdateIncidentStatusCommandValidator();
@@ -114,6 +117,7 @@ public class UpdateIncidentStatusCommandHandlerTests
     }
 
     [Fact]
+    [Trait("Category", "Unit")]
     public async Task Handle_ResolveStatus_UpdatesIncidentAndSetsResolvedAt()
     {
         using var context = new AppDbContext(_dbContextOptions);

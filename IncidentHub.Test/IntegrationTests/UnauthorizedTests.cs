@@ -9,6 +9,7 @@ public class UnauthorizedTests(IncidentHubTestFactory factory) : IClassFixture<I
     private readonly HttpClient _client = factory.CreateClient();
 
     [Theory]
+    [Trait("Category", "Integration")]
     [InlineData("/api/incidents", "GET")]
     [InlineData("/api/incidents/00000000-0000-0000-0000-000000000000", "GET")]
     public async Task ReadEndpoints_ReturnUnauthorized_WithoutAuthentication(string url, string method)
@@ -22,6 +23,7 @@ public class UnauthorizedTests(IncidentHubTestFactory factory) : IClassFixture<I
     }
 
     [Theory]
+    [Trait("Category", "Integration")]
     [InlineData("/api/incidents", "POST")]
     public async Task WriteEndpoints_ReturnUnauthorized_WithoutAuthentication(string url, string method)
     {

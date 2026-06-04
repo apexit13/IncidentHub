@@ -33,6 +33,7 @@ public class CreateIncidentCommandHandlerTests
             .Options);
 
     [Fact]
+    [Trait("Category", "Unit")]
     public async Task Handle_ValidCommand_CreatesIncidentAndTimelineEntry()
     {
         using var context = CreateContext();
@@ -66,6 +67,7 @@ public class CreateIncidentCommandHandlerTests
     }
 
     [Fact]
+    [Trait("Category", "Unit")]
     public async Task Handle_ValidCommand_SetsDefaultStatusToNew()
     {
         using var context = CreateContext();
@@ -86,6 +88,7 @@ public class CreateIncidentCommandHandlerTests
     }
 
     [Fact]
+    [Trait("Category", "Unit")]
     public async Task Handle_ValidCommand_SetsCreatedAt()
     {
         using var context = CreateContext();

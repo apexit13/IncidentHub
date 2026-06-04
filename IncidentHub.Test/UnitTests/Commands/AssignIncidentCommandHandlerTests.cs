@@ -38,6 +38,7 @@ public class AssignIncidentCommandHandlerTests
         _mockHubContext.Setup(h => h.Clients).Returns(mockClients.Object);
     }
     [Fact]
+    [Trait("Category", "Unit")]
     public async Task Handle_ValidCommand_UpdatesAssignmentAndCreatesTimeline()
     {
         // Arrange
@@ -76,6 +77,7 @@ public class AssignIncidentCommandHandlerTests
     }
 
     [Fact]
+    [Trait("Category", "Unit")]
     public async Task Handle_UnassignCommand_SetsAssignedToNull()
     {
         // Arrange
@@ -107,6 +109,7 @@ public class AssignIncidentCommandHandlerTests
     }
 
     [Fact]
+    [Trait("Category", "Unit")]
     public async Task Handle_NonExistentIncident_ThrowsException()
     {
         // Arrange

@@ -13,6 +13,7 @@ public class IncidentEndpointsTests(CustomWebApplicationFactory factory) : IClas
     // ── GET /api/incidents ────────────────────────────────────────────────
 
     [Fact]
+    [Trait("Category", "Integration")]
     public async Task GetIncidents_ReturnsOk_ForAdminRole()
     {
         _client.DefaultRequestHeaders.Clear();
@@ -24,6 +25,7 @@ public class IncidentEndpointsTests(CustomWebApplicationFactory factory) : IClas
     }
 
     [Fact]
+    [Trait("Category", "Integration")]
     public async Task GetIncidents_ReturnsUnauthorized_WithoutPermissions()
     {
         _client.DefaultRequestHeaders.Clear();
@@ -36,6 +38,7 @@ public class IncidentEndpointsTests(CustomWebApplicationFactory factory) : IClas
     // ── GET /api/incidents/{id} ───────────────────────────────────────────
 
     [Fact]
+    [Trait("Category", "Integration")]
     public async Task GetIncidentById_ReturnsNotFound_ForNonExistentId()
     {
         _client.DefaultRequestHeaders.Clear();
@@ -51,6 +54,7 @@ public class IncidentEndpointsTests(CustomWebApplicationFactory factory) : IClas
     // ── POST /api/incidents ───────────────────────────────────────────────
 
     [Fact]
+    [Trait("Category", "Integration")]
     public async Task CreateIncident_ReturnsCreated_WithValidData()
     {
         _client.DefaultRequestHeaders.Clear();
@@ -75,6 +79,7 @@ public class IncidentEndpointsTests(CustomWebApplicationFactory factory) : IClas
     }
 
     [Fact]
+    [Trait("Category", "Integration")]
     public async Task CreateIncident_ReturnsForbidden_ForViewerRole()
     {
         _client.DefaultRequestHeaders.Clear();

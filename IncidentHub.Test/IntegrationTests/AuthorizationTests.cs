@@ -11,6 +11,7 @@ public class AuthorizationTests(CustomWebApplicationFactory factory) : IClassFix
     // ── Unauthorized ──────────────────────────────────────────────────────
 
     [Theory]
+    [Trait("Category", "Integration")]
     [InlineData("/api/incidents", "GET")]
     [InlineData("/api/incidents/00000000-0000-0000-0000-000000000000", "GET")]
     [InlineData("/api/incidents", "POST")]
@@ -30,6 +31,7 @@ public class AuthorizationTests(CustomWebApplicationFactory factory) : IClassFix
     // ── GET /api/incidents ────────────────────────────────────────────────
 
     [Theory]
+    [Trait("Category", "Integration")]
     [InlineData("admin")]
     [InlineData("responder")]
     [InlineData("viewer")]
@@ -46,6 +48,7 @@ public class AuthorizationTests(CustomWebApplicationFactory factory) : IClassFix
     // ── GET /api/incidents/{id} ───────────────────────────────────────────
 
     [Fact]
+    [Trait("Category", "Integration")]
     public async Task GetIncidentById_ReturnsNotFound_ForUnknownId()
     {
         _client.DefaultRequestHeaders.Clear();
@@ -59,6 +62,7 @@ public class AuthorizationTests(CustomWebApplicationFactory factory) : IClassFix
     }
 
     [Fact]
+    [Trait("Category", "Integration")]
     public async Task GetIncidentById_ReturnsNotFound_ForViewerRole()
     {
         _client.DefaultRequestHeaders.Clear();
@@ -74,6 +78,7 @@ public class AuthorizationTests(CustomWebApplicationFactory factory) : IClassFix
     // ── POST /api/incidents ───────────────────────────────────────────────
 
     [Fact]
+    [Trait("Category", "Integration")]
     public async Task CreateIncident_ReturnsForbidden_ForViewerRole()
     {
         _client.DefaultRequestHeaders.Clear();
@@ -89,6 +94,7 @@ public class AuthorizationTests(CustomWebApplicationFactory factory) : IClassFix
     }
 
     [Fact]
+    [Trait("Category", "Integration")]
     public async Task CreateIncident_ReturnsCreated_ForAdminRole()
     {
         _client.DefaultRequestHeaders.Clear();
@@ -106,6 +112,7 @@ public class AuthorizationTests(CustomWebApplicationFactory factory) : IClassFix
     // ── PATCH /api/incidents/{id}/status ─────────────────────────────────
 
     [Fact]
+    [Trait("Category", "Integration")]
     public async Task UpdateStatus_ReturnsForbidden_ForViewerRole()
     {
         _client.DefaultRequestHeaders.Clear();
@@ -124,6 +131,7 @@ public class AuthorizationTests(CustomWebApplicationFactory factory) : IClassFix
     }
 
     [Fact]
+    [Trait("Category", "Integration")]
     public async Task UpdateStatus_ReturnsNotFound_ForResponderRole()
     {
         _client.DefaultRequestHeaders.Clear();
@@ -144,6 +152,7 @@ public class AuthorizationTests(CustomWebApplicationFactory factory) : IClassFix
     // ── POST /api/incidents/{id}/resolve ─────────────────────────────────
 
     [Fact]
+    [Trait("Category", "Integration")]
     public async Task ResolveIncident_ReturnsForbidden_ForViewerRole()
     {
         _client.DefaultRequestHeaders.Clear();
@@ -160,6 +169,7 @@ public class AuthorizationTests(CustomWebApplicationFactory factory) : IClassFix
     // ── PATCH /api/incidents/{id}/assignment ──────────────────────────────
 
     [Fact]
+    [Trait("Category", "Integration")]
     public async Task UpdateAssignment_ReturnsForbidden_ForViewerRole()
     {
         _client.DefaultRequestHeaders.Clear();
@@ -178,6 +188,7 @@ public class AuthorizationTests(CustomWebApplicationFactory factory) : IClassFix
     }
 
     [Fact]
+    [Trait("Category", "Integration")]
     public async Task UpdateAssignment_ReturnsNotFound_ForAdminRole()
     {
         _client.DefaultRequestHeaders.Clear();
