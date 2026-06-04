@@ -18,7 +18,7 @@ A real-time incident management system built with .NET, React, and SignalR.
   <img src="./.github/screenshots/dashboard.png" alt="Incident Dashboard showing list of incidents with severity badges and status filters" width="800"/>
 </p>
 
-The dashboard provides a view of all incidents with filtering by status, severity, and assignment. Critical incidents are highlighted for immediate attention.
+The dashboard provides a view of all incidents with filtering by status or searchable title and description. Incidents are ordered by severity.
 
 ---
 
@@ -36,7 +36,7 @@ Each incident displays full details including description, severity, current sta
   <img src="./.github/screenshots/create-incident.png" alt="Create incident form with title, description, and severity fields" width="400"/>
 </p>
 
-Creating an incident is straightforward — provide a title, description, and severity level. The incident is automatically assigned a "New" status and tracked to the creator.
+Creating an incident is straightforward — provide a title, description, severity level and optional assigned responder. The incident is automatically assigned a "New" status and tracked to the creator.
 
 ---
 
@@ -60,7 +60,7 @@ A full audit trail is maintained for every incident. Each status change, assignm
   <img src="./.github/screenshots/admin-incident-details.png" width="400"/>
 </p>
 
-IncidentHub enforces fine-grained permissions. Viewers can read incidents, responders can create and update, and admins have full management capabilities.
+IncidentHub enforces fine-grained permissions. Viewers can read incidents, responders can update, and admins have full management capabilities.
 
 ---
 
@@ -74,7 +74,7 @@ Incident changes are broadcast in real-time to all connected users via SignalR, 
 ## 🏗️ Architecture
 
 - **Frontend**: React 19 with TypeScript
-- **Backend**: .NET 10 Web API with CQRS pattern
+- **Backend**: .NET 10 Minimal API with CQRS pattern
 - **Real-time**: SignalR for live updates
 - **Authentication**: Auth0 integration
 - **Database**: SQL Server
