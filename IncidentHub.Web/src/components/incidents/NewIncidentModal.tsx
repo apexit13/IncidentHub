@@ -46,7 +46,6 @@ export function NewIncidentModal({ onClose, onSubmit, isSubmitting }: NewInciden
         <div className="px-6 pt-5 pb-4 border-b border-gray-200 flex justify-between items-center">
           <div>
             <div className="text-base font-extrabold text-gray-800">Raise Incident</div>
-            <div className="text-xs text-gray-500 mt-0.5">Saved to database and broadcast via SignalR</div>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl transition-colors cursor-pointer">×</button>
         </div>
