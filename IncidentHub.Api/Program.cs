@@ -108,15 +108,18 @@ try
         .AddPolicy(Policies.CanReadUsers, policy =>
             policy.RequireClaim("permissions", Permissions.ReadUsers));
 
-    // CORS is just implemented for local dev.
-    // For production, Azure configures CORS in front of the API to only allow specific clients
+    // CORS configuration - allow requests from frontend app
+    var frontendUrls = new[]
+    {
+        builder.Configuration["Cors:FrontendUrl"] ?? string.Empty,
+        "http://localhost:5173",
+        "https://localhost:7123"
+    };
+
     builder.Services.AddCors(options =>
     {
         options.AddPolicy("FrontendCors", policy => policy
-            .WithOrigins(
-            "http://localhost:5173",
-            "https://localhost:7123"
-            )
+            .WithOrigins(frontendUrls)
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials());
