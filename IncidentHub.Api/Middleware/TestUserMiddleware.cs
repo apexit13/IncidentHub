@@ -41,6 +41,7 @@ public class TestUserMiddleware(RequestDelegate next, IConfiguration config)
                 Permissions.AssignIncidents,
                 Permissions.ManageIncidents,
                 Permissions.ReadIncidents,
+                Permissions.CreateIncidents,
                 Permissions.ReadUsers
             ],
             "responder" =>

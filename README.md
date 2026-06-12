@@ -5,7 +5,7 @@ A real-time incident management system built with .NET, React, and SignalR.
 ## 🚀 Features
 
 - Real-time incident tracking with SignalR
-- Role-based access control (Admin, Responder, Viewer)
+- Permission-based authorization with role grouping (Admin, Responder, Viewer)
 - Incident lifecycle management (New → Investigating → Identified → Monitoring → Resolved)
 - Assignment tracking with user management
 - Timeline history for all incident changes
@@ -49,7 +49,7 @@ A full audit trail is maintained for every incident. Each status change, assignm
 
 ---
 
-### Role-Based Access Control
+### Permission-Based Authorization
 <p align="center">
   <strong>Viewer</strong> — Read-only access<br/>
   <img src="./.github/screenshots/viewer-header.png" width="400"/><br/>
@@ -71,6 +71,10 @@ IncidentHub enforces fine-grained permissions. Viewers can read incidents, respo
 
 Incident changes are broadcast in real-time to all connected users via SignalR, ensuring the dashboard stays current without manual refreshes.
 
+## 🌐 Live Demo
+
+Available upon request for recruiters and hiring managers.
+
 ## 🏗️ Architecture
 
 - **Frontend**: React 19 with TypeScript
@@ -78,7 +82,7 @@ Incident changes are broadcast in real-time to all connected users via SignalR, 
 - **Real-time**: SignalR for live updates
 - **Authentication**: Auth0 integration
 - **Database**: SQL Server
-- **State Management**: React Query + TanStack Query
+- **State Management**: TanStack Query (React Query)
 
 ## 📦 Key Components
 
@@ -103,7 +107,7 @@ Incident changes are broadcast in real-time to all connected users via SignalR, 
 - Auth0 account
 
 ### Configuration
-Create `appsettings.development.json` with the following structure:
+Create `appsettings.Development.json` with the following structure:
 ```json
 {
   "ConnectionStrings": {
@@ -123,11 +127,14 @@ Create `appsettings.development.json` with the following structure:
 
 ### Backend Setup
 1. Clone the repository
-2. Configure appsettings.json with your Auth0 and database settings
-3. Run `dotnet restore` and `dotnet run`
+2. Configure `appsettings.Development.json` with your Auth0 and database settings
+3. Run `dotnet restore`
+4. Run `dotnet run`
+
+> **Note:** Database migrations are applied automatically on startup via `MigrateAsync()`. No manual migration step required.
 
 ### Frontend Setup
-1. Navigate to client directory
+1. Navigate to the src/IncidentHub.Web directory
 2. Run `npm install`
 3. Run `npm run dev`
 
@@ -156,6 +163,23 @@ All roles require `read:users` permission to access user information endpoints. 
 
 ### Test Users
 Use `X-Permissions` header in development for role simulation
+
+#### PowerShell (Windows):
+```bash
+# Admin permissions
+(Invoke-WebRequest -Uri "http://localhost:5249/api/incidents" -Headers @{ "X-Permissions" = "admin" } -UseBasicParsing).Content
+
+# Viewer permissions
+(Invoke-WebRequest -Uri "http://localhost:5249/api/incidents" -Headers @{ "X-Permissions" = "viewer" } -UseBasicParsing).Content
+```
+#### Bash (Mac/Linux/Git Bash):
+```bash
+# Admin permissions
+curl http://localhost:5249/api/incidents -H "X-Permissions: admin"
+
+# Viewer permissions
+curl http://localhost:5249/api/incidents -H "X-Permissions: viewer"
+```
 
 ## 🛠️ Development
 

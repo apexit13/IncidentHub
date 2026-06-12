@@ -114,7 +114,6 @@ try
     {
         options.AddPolicy("FrontendCors", policy => policy
             .WithOrigins(
-            "https://lively-ocean-03dfd8a0f.7.azurestaticapps.net",
             "http://localhost:5173",
             "https://localhost:7123"
             )
