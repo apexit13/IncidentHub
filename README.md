@@ -127,9 +127,9 @@ Create `appsettings.Development.json` with the following structure:
 
 ### Backend Setup
 1. Clone the repository
-2. Configure `appsettings.Development.json` with your Auth0 and database settings
-3. Run `dotnet restore`
-4. Run `dotnet run`
+2. Copy `appsettings.Development.template.json` to `appsettings.Development.json` and fill in your Auth0 and database values
+3. Run `dotnet run` — the database and schema will be 
+   created automatically on first run
 
 > **Note:** Database migrations are applied automatically on startup via `MigrateAsync()`. No manual migration step required.
 
